@@ -1,5 +1,5 @@
 {
-  "name": "CZ/SK School & Work Calendar",
+  "name": "Heating Zones",
   "homeassistant": "2023.1.0",
   "render_readme": true,
   "country": ["CZ", "SK"]
