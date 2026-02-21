@@ -1,0 +1,6 @@
+{
+  "name": "CZ/SK School & Work Calendar",
+  "homeassistant": "2023.1.0",
+  "render_readme": true,
+  "country": ["CZ", "SK"]
+}
