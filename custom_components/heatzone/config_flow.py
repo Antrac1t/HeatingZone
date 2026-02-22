@@ -11,8 +11,6 @@ from typing import Any
 
 from .const import (
     DOMAIN,
-    CONTROL_MODE_ONOFF,
-    CONTROL_MODE_PWM,
     DEFAULT_VALVE_OPEN_TIME,
     DEFAULT_HYSTERESIS,
     DEFAULT_TARGET_TEMP,
@@ -48,6 +46,14 @@ class ThermoZonaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         domain="sensor", device_class=["temperature"]
                     )
                 ),
+                vol.Optional("opentherm_return_sensor"): selector.EntitySelector(
+                    selector.EntitySelectorConfig(
+                        domain="sensor", device_class=["temperature"]
+                    )
+                ),
+                vol.Optional("opentherm_modulation_sensor"): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="sensor")
+                ),
                 vol.Required(
                     "valve_open_time", default=DEFAULT_VALVE_OPEN_TIME
                 ): vol.All(vol.Coerce(int), vol.Range(min=30, max=300)),
@@ -75,6 +81,7 @@ class OptionsFlow(config_entries.OptionsFlow):
         super().__init__()
         self._config_entry = config_entry
         self._zone_index: int | None = None
+        self._current_zone_valves: list = []
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Main options menu."""
@@ -83,72 +90,23 @@ class OptionsFlow(config_entries.OptionsFlow):
             
             if action == "add_zone":
                 self._zone_index = None
-                return await self.async_step_zone_config()
+                self._current_zone_valves = []
+                return await self.async_step_zone_basic()
             elif action == "list_zones":
                 return await self.async_step_list_zones()
-            elif action == "circuits":
-                return await self.async_step_circuits()
         
-        # Get current zones count
         zones = self._config_entry.options.get("zones", [])
         zones_count = len(zones)
         
         actions = {
             "add_zone": f"➕ Přidat zónu (aktuálně: {zones_count})",
             "list_zones": "📋 Spravovat zóny",
-            "circuits": "🔧 Hlavní okruhy",
         }
         
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema({
                 vol.Required("action"): vol.In(actions)
-            })
-        )
-
-    async def async_step_circuits(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Configure main circuits."""
-        if user_input is not None:
-            circuits = {}
-            for key in ["circuit_1", "circuit_2", "kitchen", "bathroom"]:
-                switch_key = f"{key}_switch"
-                if user_input.get(switch_key):
-                    circuits[key] = user_input[switch_key]
-            
-            new_options = dict(self._config_entry.options)
-            new_options["main_circuits"] = circuits
-            
-            return self.async_create_entry(title="", data=new_options)
-
-        current_circuits = self._config_entry.options.get("main_circuits", {})
-
-        return self.async_show_form(
-            step_id="circuits",
-            data_schema=vol.Schema({
-                vol.Optional(
-                    "circuit_1_switch",
-                    description={"suggested_value": current_circuits.get("circuit_1")}
-                ): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain=["switch"])
-                ),
-                vol.Optional(
-                    "circuit_2_switch",
-                    description={"suggested_value": current_circuits.get("circuit_2")}
-                ): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain=["switch"])
-                ),
-                vol.Optional(
-                    "kitchen_switch",
-                    description={"suggested_value": current_circuits.get("kitchen")}
-                ): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain=["switch"])
-                ),
-                vol.Optional(
-                    "bathroom_switch",
-                    description={"suggested_value": current_circuits.get("bathroom")}
-                ): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain=["switch"])
-                ),
             })
         )
 
@@ -163,7 +121,9 @@ class OptionsFlow(config_entries.OptionsFlow):
                 return await self.async_step_init()
             elif action and action.startswith("edit_"):
                 self._zone_index = int(action.split("_")[1])
-                return await self.async_step_zone_config()
+                zone = zones[self._zone_index]
+                self._current_zone_valves = list(zone.get("valves", []))
+                return await self.async_step_zone_basic()
             elif action and action.startswith("delete_"):
                 zone_idx = int(action.split("_")[1])
                 zones.pop(zone_idx)
@@ -185,11 +145,14 @@ class OptionsFlow(config_entries.OptionsFlow):
         actions = {"back": "⬅️ Zpět"}
         for idx, zone in enumerate(zones):
             name = zone.get("name", f"Zóna {idx+1}")
-            actions[f"edit_{idx}"] = f"✏️ {name}"
+            valve_count = len(zone.get("valves", []))
+            actions[f"edit_{idx}"] = f"✏️ {name} ({valve_count} ventilů)"
             actions[f"delete_{idx}"] = f"🗑️ {name}"
 
         zones_info = "\n".join([
-            f"{i+1}. {z.get('name', 'Bez názvu')} - {z.get('target_temp', 21)}°C"
+            f"{i+1}. {z.get('name', 'Bez názvu')} - "
+            f"{z.get('target_temp', 21)}°C, "
+            f"ventilů: {len(z.get('valves', []))}"
             for i, z in enumerate(zones)
         ])
 
@@ -201,52 +164,20 @@ class OptionsFlow(config_entries.OptionsFlow):
             description_placeholders={"info": zones_info}
         )
 
-    async def async_step_zone_config(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Configure zone."""
+    async def async_step_zone_basic(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        """Configure basic zone settings."""
         zones = list(self._config_entry.options.get("zones", []))
         
         if user_input is not None:
-            zone = {
-                "name": user_input["zone_name"],
-                "room_sensor": user_input["room_sensor"],
-                "target_temp": user_input.get("target_temp", DEFAULT_TARGET_TEMP),
-                "hysteresis": user_input.get("hysteresis", DEFAULT_HYSTERESIS),
-                "main_circuit": user_input.get("main_circuit", "none"),
-                "sub_valves": []
-            }
-            
-            # Add sub-valves
-            for i in range(1, 5):
-                if user_input.get(f"valve_{i}"):
-                    zone["sub_valves"].append({
-                        "valve": user_input[f"valve_{i}"],
-                        "floor_sensor": user_input.get(f"floor_{i}"),
-                        "max_floor_temp": user_input.get(f"max_temp_{i}", DEFAULT_MAX_FLOOR_TEMP)
-                    })
-            
-            if self._zone_index is not None:
-                zones[self._zone_index] = zone
-            else:
-                zones.append(zone)
-            
-            new_options = dict(self._config_entry.options)
-            new_options["zones"] = zones
-            
-            return self.async_create_entry(title="", data=new_options)
+            # Uložit základní info do temporary storage
+            self._temp_zone_basic = user_input
+            return await self.async_step_zone_valves()
 
         # Get existing zone data if editing
         zone_data = {}
         if self._zone_index is not None and self._zone_index < len(zones):
             zone_data = zones[self._zone_index]
 
-        # Prepare circuits list
-        circuits_dict = {"none": "Žádný"}
-        configured_circuits = self._config_entry.options.get("main_circuits", {})
-        circuits_dict.update({k: k.title() for k in configured_circuits.keys()})
-
-        # Prepare sub-valves defaults
-        sub_valves = zone_data.get("sub_valves", [])
-        
         schema_dict = {
             vol.Required(
                 "zone_name",
@@ -269,37 +200,107 @@ class OptionsFlow(config_entries.OptionsFlow):
                 "hysteresis",
                 description={"suggested_value": zone_data.get("hysteresis", DEFAULT_HYSTERESIS)}
             ): vol.All(vol.Coerce(float), vol.Range(min=0.1, max=2.0)),
-            vol.Optional(
-                "main_circuit",
-                description={"suggested_value": zone_data.get("main_circuit", "none")}
-            ): vol.In(circuits_dict),
+        }
+
+        return self.async_show_form(
+            step_id="zone_basic",
+            data_schema=vol.Schema(schema_dict),
+            description_placeholders={
+                "info": "Základní nastavení zóny - název a pokojový teploměr"
+            }
+        )
+
+    async def async_step_zone_valves(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        """Manage valves for zone."""
+        if user_input is not None:
+            action = user_input.get("action")
+            
+            if action == "add_valve":
+                return await self.async_step_add_valve()
+            elif action == "done":
+                # Save complete zone
+                zones = list(self._config_entry.options.get("zones", []))
+                
+                zone = {
+                    "name": self._temp_zone_basic["zone_name"],
+                    "room_sensor": self._temp_zone_basic["room_sensor"],
+                    "target_temp": self._temp_zone_basic.get("target_temp", DEFAULT_TARGET_TEMP),
+                    "hysteresis": self._temp_zone_basic.get("hysteresis", DEFAULT_HYSTERESIS),
+                    "valves": self._current_zone_valves
+                }
+                
+                if self._zone_index is not None:
+                    zones[self._zone_index] = zone
+                else:
+                    zones.append(zone)
+                
+                new_options = dict(self._config_entry.options)
+                new_options["zones"] = zones
+                
+                return self.async_create_entry(title="", data=new_options)
+            elif action and action.startswith("delete_"):
+                valve_idx = int(action.split("_")[1])
+                self._current_zone_valves.pop(valve_idx)
+                return await self.async_step_zone_valves()
+
+        # Build actions
+        actions = {
+            "add_valve": "➕ Přidat ventil",
+            "done": "✅ Hotovo"
         }
         
-        # Add sub-valve fields
-        for i in range(1, 5):
-            valve_data = sub_valves[i-1] if i-1 < len(sub_valves) else {}
+        for idx, valve in enumerate(self._current_zone_valves):
+            valve_name = valve.get("valve", "Neznámý")
+            actions[f"delete_{idx}"] = f"🗑️ Ventil: {valve_name.split('.')[-1]}"
+
+        valves_info = f"Ventilů v zóně: {len(self._current_zone_valves)}"
+        if self._current_zone_valves:
+            valves_info += "\n\n" + "\n".join([
+                f"{i+1}. {v.get('valve', 'N/A').split('.')[-1]} - "
+                f"Max podlaha: {v.get('max_floor_temp', 30)}°C"
+                for i, v in enumerate(self._current_zone_valves)
+            ])
+
+        return self.async_show_form(
+            step_id="zone_valves",
+            data_schema=vol.Schema({
+                vol.Required("action"): vol.In(actions)
+            }),
+            description_placeholders={"info": valves_info}
+        )
+
+    async def async_step_add_valve(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        """Add a valve to current zone."""
+        if user_input is not None:
+            valve = {
+                "valve": user_input["valve_switch"],
+                "floor_sensor": user_input.get("floor_sensor"),
+                "max_floor_temp": user_input.get("max_floor_temp", DEFAULT_MAX_FLOOR_TEMP)
+            }
             
-            schema_dict[vol.Optional(
-                f"valve_{i}",
-                description={"suggested_value": valve_data.get("valve")}
-            )] = selector.EntitySelector(
+            self._current_zone_valves.append(valve)
+            return await self.async_step_zone_valves()
+
+        schema_dict = {
+            vol.Required("valve_switch"): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain=["switch"])
-            )
-            schema_dict[vol.Optional(
-                f"floor_{i}",
-                description={"suggested_value": valve_data.get("floor_sensor")}
-            )] = selector.EntitySelector(
+            ),
+            vol.Optional("floor_sensor"): selector.EntitySelector(
                 selector.EntitySelectorConfig(
                     domain=["sensor"],
                     device_class=["temperature"]
                 )
-            )
-            schema_dict[vol.Optional(
-                f"max_temp_{i}",
-                description={"suggested_value": valve_data.get("max_floor_temp", DEFAULT_MAX_FLOOR_TEMP)}
-            )] = vol.All(vol.Coerce(float), vol.Range(min=20, max=40))
+            ),
+            vol.Optional(
+                "max_floor_temp",
+                description={"suggested_value": DEFAULT_MAX_FLOOR_TEMP}
+            ): vol.All(vol.Coerce(float), vol.Range(min=20, max=40)),
+        }
 
         return self.async_show_form(
-            step_id="zone_config",
-            data_schema=vol.Schema(schema_dict)
+            step_id="add_valve",
+            data_schema=vol.Schema(schema_dict),
+            description_placeholders={
+                "info": "Přidejte ventil (termohlavici) do této zóny"
+            }
         )
