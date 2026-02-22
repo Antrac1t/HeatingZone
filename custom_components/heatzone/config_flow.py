@@ -1,101 +1,66 @@
-"""Config flow for Thermozona Gas integration."""
-from __future__ import annotations
-
-import logging
-from typing import Any
-
+"""Config flow for Thermozona Gas."""
 import voluptuous as vol
-
 from homeassistant import config_entries
 from homeassistant.core import callback
-from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
+import homeassistant.helpers.config_validation as cv
 
 from .const import (
     DOMAIN,
-    CONF_OUTSIDE_TEMP_SENSOR,
-    CONF_OPENTHERM_DEVICE,
-    CONF_HEATING_BASE_OFFSET,
-    CONF_WEATHER_SLOPE_HEAT,
-    CONF_MIN_WATER_TEMP,
-    CONF_MAX_WATER_TEMP,
-    CONF_ZONES,
-    CONF_ZONE_NAME,
-    CONF_CIRCUITS,
-    CONF_TEMP_SENSOR,
-    CONF_TEMP_SUPPLY,
-    CONF_TEMP_RETURN,
-    CONF_TEMP_FLOOR,
-    CONF_CONTROL_MODE,
-    CONF_HYSTERESIS,
-    CONF_PWM_CYCLE_TIME,
-    CONF_PWM_KP,
-    CONF_PWM_KI,
-    CONF_VALVE_OPEN_TIME,
-    CONF_VALVE_CLOSE_TIME,
-    CONF_MAX_FLOOR_TEMP,
-    DEFAULT_HEATING_BASE_OFFSET,
-    DEFAULT_WEATHER_SLOPE_HEAT,
-    DEFAULT_MIN_WATER_TEMP,
-    DEFAULT_MAX_WATER_TEMP,
-    DEFAULT_CONTROL_MODE,
+    CONTROL_MODE_ONOFF,
+    CONTROL_MODE_PWM,
     DEFAULT_HYSTERESIS,
-    DEFAULT_PWM_CYCLE_TIME,
-    DEFAULT_PWM_KP,
-    DEFAULT_PWM_KI,
     DEFAULT_VALVE_OPEN_TIME,
-    DEFAULT_VALVE_CLOSE_TIME,
+    DEFAULT_TARGET_TEMP,
     DEFAULT_MAX_FLOOR_TEMP,
 )
 
-_LOGGER = logging.getLogger(__name__)
 
-
-class ThermozonaGasConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Thermozona Gas."""
+class ThermoZonaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+    """Handle config flow."""
 
     VERSION = 1
 
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Handle the initial step."""
-        errors: dict[str, str] = {}
+    def __init__(self):
+        """Initialize."""
+        self._data = {}
+        self._zones = []
+
+    async def async_step_user(self, user_input=None):
+        """Handle initial step."""
+        errors = {}
 
         if user_input is not None:
-            await self.async_set_unique_id(DOMAIN)
-            self._abort_if_unique_id_configured()
-            
-            return self.async_create_entry(
-                title="Thermozona Gas",
-                data=user_input,
-                options={CONF_ZONES: {}},
-            )
+            self._data.update(user_input)
+            return await self.async_step_main_circuits()
 
         data_schema = vol.Schema(
             {
-                vol.Required(CONF_OUTSIDE_TEMP_SENSOR): selector.EntitySelector(
+                vol.Required("boiler_switch"): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="switch")
+                ),
+                vol.Optional("opentherm_device"): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain=["climate", "water_heater"])
+                ),
+                vol.Optional("opentherm_temp_sensor"): selector.EntitySelector(
+                    selector.EntitySelectorConfig(
+                        domain="sensor", device_class="temperature"
+                    )
+                ),
+                vol.Optional("opentherm_return_sensor"): selector.EntitySelector(
+                    selector.EntitySelectorConfig(
+                        domain="sensor", device_class="temperature"
+                    )
+                ),
+                vol.Optional("opentherm_modulation_sensor"): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="sensor")
                 ),
-                vol.Optional(CONF_OPENTHERM_DEVICE): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="climate")
+                vol.Required(
+                    "valve_open_time", default=DEFAULT_VALVE_OPEN_TIME
+                ): vol.All(vol.Coerce(int), vol.Range(min=30, max=300)),
+                vol.Required("control_mode", default=CONTROL_MODE_ONOFF): vol.In(
+                    [CONTROL_MODE_ONOFF, CONTROL_MODE_PWM]
                 ),
-                vol.Optional(
-                    CONF_HEATING_BASE_OFFSET,
-                    default=DEFAULT_HEATING_BASE_OFFSET,
-                ): vol.All(vol.Coerce(float), vol.Range(min=0, max=10)),
-                vol.Optional(
-                    CONF_WEATHER_SLOPE_HEAT,
-                    default=DEFAULT_WEATHER_SLOPE_HEAT,
-                ): vol.All(vol.Coerce(float), vol.Range(min=0.1, max=1.0)),
-                vol.Optional(
-                    CONF_MIN_WATER_TEMP,
-                    default=DEFAULT_MIN_WATER_TEMP,
-                ): vol.All(vol.Coerce(float), vol.Range(min=25, max=40)),
-                vol.Optional(
-                    CONF_MAX_WATER_TEMP,
-                    default=DEFAULT_MAX_WATER_TEMP,
-                ): vol.All(vol.Coerce(float), vol.Range(min=35, max=55)),
             }
         )
 
@@ -105,132 +70,175 @@ class ThermozonaGasConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    @staticmethod
-    @callback
-    def async_get_options_flow(config_entry):
-        """Get options flow."""
-        return ThermozonaGasOptionsFlow(config_entry)
-
-
-class ThermozonaGasOptionsFlow(config_entries.OptionsFlow):
-    """Handle options for zones."""
-
-    def __init__(self, config_entry):
-        """Initialize options flow."""
-        self.config_entry = config_entry
-        self._current_zone_id = None
-        self._zone_name = None
-
-    async def async_step_init(self, user_input=None):
-        """Manage the options."""
-        return self.async_show_menu(
-            step_id="init",
-            menu_options=["add_zone", "list_zones"],
-        )
-
-    async def async_step_list_zones(self, user_input=None):
-        """Show list of zones."""
-        zones = self.config_entry.options.get(CONF_ZONES, {})
-        
-        if not zones:
-            message = "No zones configured. Use 'Add Zone' to create one."
-        else:
-            zone_list = [f"{zid}: {data.get(CONF_ZONE_NAME, zid)}" 
-                         for zid, data in zones.items()]
-            message = f"Configured zones ({len(zones)}):\n" + "\n".join(zone_list)
-        
-        return self.async_show_form(
-            step_id="list_zones",
-            data_schema=vol.Schema({}),
-            description_placeholders={"message": message},
-        )
-
-    async def async_step_add_zone(self, user_input=None):
-        """Add zone - step 1."""
+    async def async_step_main_circuits(self, user_input=None):
+        """Configure main heating circuits."""
         errors = {}
 
         if user_input is not None:
-            zone_id = user_input["zone_id"].lower().replace(" ", "_")
-            zones = self.config_entry.options.get(CONF_ZONES, {})
-            
-            if zone_id in zones:
-                errors["base"] = "zone_exists"
-            else:
-                self._current_zone_id = zone_id
-                self._zone_name = user_input[CONF_ZONE_NAME]
-                return await self.async_step_zone_config()
+            circuits = {}
+            if user_input.get("circuit_1_switch"):
+                circuits["circuit_1"] = user_input["circuit_1_switch"]
+            if user_input.get("circuit_2_switch"):
+                circuits["circuit_2"] = user_input["circuit_2_switch"]
+            if user_input.get("kitchen_switch"):
+                circuits["kitchen"] = user_input["kitchen_switch"]
+            if user_input.get("bathroom_switch"):
+                circuits["bathroom"] = user_input["bathroom_switch"]
 
-        return self.async_show_form(
-            step_id="add_zone",
-            data_schema=vol.Schema({
-                vol.Required("zone_id"): str,
-                vol.Required(CONF_ZONE_NAME): str,
-            }),
-            errors=errors,
-        )
-
-    async def async_step_zone_config(self, user_input=None):
-        """Configure zone details."""
-        if user_input is not None:
-            zones = dict(self.config_entry.options.get(CONF_ZONES, {}))
-            
-            zone_data = {
-                CONF_ZONE_NAME: self._zone_name,
-                **user_input,
-            }
-            
-            zones[self._current_zone_id] = zone_data
-            
-            return self.async_create_entry(
-                title="",
-                data={**self.config_entry.options, CONF_ZONES: zones},
-            )
+            self._data["main_circuits"] = circuits
+            return await self.async_step_add_zone()
 
         data_schema = vol.Schema(
             {
-                vol.Required(CONF_CIRCUITS): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="switch", multiple=True)
+                vol.Optional("circuit_1_switch"): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="switch")
                 ),
-                vol.Required(CONF_TEMP_SENSOR): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="sensor", device_class="temperature")
+                vol.Optional("circuit_2_switch"): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="switch")
                 ),
-                vol.Optional(CONF_TEMP_SUPPLY): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="sensor", device_class="temperature")
+                vol.Optional("kitchen_switch"): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="switch")
                 ),
-                vol.Optional(CONF_TEMP_RETURN): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="sensor", device_class="temperature")
+                vol.Optional("bathroom_switch"): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="switch")
                 ),
-                vol.Optional(CONF_TEMP_FLOOR): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="sensor", device_class="temperature")
+            }
+        )
+
+        return self.async_show_form(
+            step_id="main_circuits",
+            data_schema=data_schema,
+            errors=errors,
+        )
+
+    async def async_step_add_zone(self, user_input=None):
+        """Ask if user wants to add a zone."""
+        if user_input is not None:
+            if not user_input.get("add_zone"):
+                self._data["zones"] = self._zones
+                return self.async_create_entry(title="Thermozona Gas", data=self._data)
+            return await self.async_step_zone_config()
+
+        zones_list = "\n".join([f"- {z['name']}" for z in self._zones])
+        description = f"Nakonfigurované zóny ({len(self._zones)}):\n{zones_list}" if self._zones else "Zatím žádné zóny"
+
+        data_schema = vol.Schema(
+            {
+                vol.Required("add_zone", default=len(self._zones) == 0): cv.boolean,
+            }
+        )
+
+        return self.async_show_form(
+            step_id="add_zone",
+            data_schema=data_schema,
+            description_placeholders={"zones": description},
+        )
+
+    async def async_step_zone_config(self, user_input=None):
+        """Configure a heating zone."""
+        errors = {}
+
+        if user_input is not None:
+            # Build zone configuration
+            zone = {
+                "name": user_input["zone_name"],
+                "main_circuit": user_input.get("main_circuit"),
+                "room_sensor": user_input["room_temp_sensor"],
+                "target_temp": user_input.get("target_temp", DEFAULT_TARGET_TEMP),
+                "hysteresis": user_input.get("hysteresis", DEFAULT_HYSTERESIS),
+                "sub_valves": [],
+            }
+
+            # Add sub-valves
+            for i in range(1, 5):
+                valve_key = f"sub_valve_{i}"
+                floor_key = f"floor_sensor_{i}"
+                max_temp_key = f"max_floor_temp_{i}"
+
+                if user_input.get(valve_key):
+                    sub_valve = {
+                        "valve": user_input[valve_key],
+                        "floor_sensor": user_input.get(floor_key),
+                        "max_floor_temp": user_input.get(
+                            max_temp_key, DEFAULT_MAX_FLOOR_TEMP
+                        ),
+                    }
+                    zone["sub_valves"].append(sub_valve)
+
+            self._zones.append(zone)
+            return await self.async_step_add_zone()
+
+        # Build main circuit options
+        main_circuits = {"none": "Žádný hlavní okruh"}
+        if self._data.get("main_circuits"):
+            for key in self._data["main_circuits"].keys():
+                main_circuits[key] = f"Okruh: {key}"
+
+        data_schema = vol.Schema(
+            {
+                vol.Required("zone_name"): cv.string,
+                vol.Optional("main_circuit"): vol.In(main_circuits),
+                vol.Required("room_temp_sensor"): selector.EntitySelector(
+                    selector.EntitySelectorConfig(
+                        domain="sensor", device_class="temperature"
+                    )
                 ),
-                vol.Optional(CONF_CONTROL_MODE, default=DEFAULT_CONTROL_MODE): selector.SelectSelector(
-                    selector.SelectSelectorConfig(options=["bang_bang", "pwm"])
+                vol.Optional("target_temp", default=DEFAULT_TARGET_TEMP): vol.All(
+                    vol.Coerce(float), vol.Range(min=15, max=30)
                 ),
-                vol.Optional(CONF_HYSTERESIS, default=DEFAULT_HYSTERESIS): vol.All(
+                vol.Optional("hysteresis", default=DEFAULT_HYSTERESIS): vol.All(
                     vol.Coerce(float), vol.Range(min=0.1, max=2.0)
                 ),
-                vol.Optional(CONF_PWM_CYCLE_TIME, default=DEFAULT_PWM_CYCLE_TIME): vol.All(
-                    vol.Coerce(int), vol.Range(min=10, max=30)
+                # Sub-valves 1-4
+                vol.Optional("sub_valve_1"): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="switch")
                 ),
-                vol.Optional(CONF_PWM_KP, default=DEFAULT_PWM_KP): vol.All(
-                    vol.Coerce(float), vol.Range(min=10, max=50)
+                vol.Optional("floor_sensor_1"): selector.EntitySelector(
+                    selector.EntitySelectorConfig(
+                        domain="sensor", device_class="temperature"
+                    )
                 ),
-                vol.Optional(CONF_PWM_KI, default=DEFAULT_PWM_KI): vol.All(
-                    vol.Coerce(float), vol.Range(min=0.5, max=5.0)
+                vol.Optional(
+                    "max_floor_temp_1", default=DEFAULT_MAX_FLOOR_TEMP
+                ): vol.All(vol.Coerce(float), vol.Range(min=20, max=40)),
+                vol.Optional("sub_valve_2"): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="switch")
                 ),
-                vol.Optional(CONF_VALVE_OPEN_TIME, default=DEFAULT_VALVE_OPEN_TIME): vol.All(
-                    vol.Coerce(int), vol.Range(min=30, max=300)
+                vol.Optional("floor_sensor_2"): selector.EntitySelector(
+                    selector.EntitySelectorConfig(
+                        domain="sensor", device_class="temperature"
+                    )
                 ),
-                vol.Optional(CONF_VALVE_CLOSE_TIME, default=DEFAULT_VALVE_CLOSE_TIME): vol.All(
-                    vol.Coerce(int), vol.Range(min=30, max=300)
+                vol.Optional(
+                    "max_floor_temp_2", default=DEFAULT_MAX_FLOOR_TEMP
+                ): vol.All(vol.Coerce(float), vol.Range(min=20, max=40)),
+                vol.Optional("sub_valve_3"): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="switch")
                 ),
-                vol.Optional(CONF_MAX_FLOOR_TEMP, default=DEFAULT_MAX_FLOOR_TEMP): vol.All(
-                    vol.Coerce(float), vol.Range(min=25, max=35)
+                vol.Optional("floor_sensor_3"): selector.EntitySelector(
+                    selector.EntitySelectorConfig(
+                        domain="sensor", device_class="temperature"
+                    )
                 ),
+                vol.Optional(
+                    "max_floor_temp_3", default=DEFAULT_MAX_FLOOR_TEMP
+                ): vol.All(vol.Coerce(float), vol.Range(min=20, max=40)),
+                vol.Optional("sub_valve_4"): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="switch")
+                ),
+                vol.Optional("floor_sensor_4"): selector.EntitySelector(
+                    selector.EntitySelectorConfig(
+                        domain="sensor", device_class="temperature"
+                    )
+                ),
+                vol.Optional(
+                    "max_floor_temp_4", default=DEFAULT_MAX_FLOOR_TEMP
+                ): vol.All(vol.Coerce(float), vol.Range(min=20, max=40)),
             }
         )
 
         return self.async_show_form(
             step_id="zone_config",
             data_schema=data_schema,
+            errors=errors,
         )
