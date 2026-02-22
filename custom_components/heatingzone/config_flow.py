@@ -402,22 +402,53 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
         """Save the zone."""
+        if not self._valves:
+            # Pokud nejsou ventily, vrátit zpět na správu ventilů
+            _LOGGER.warning("No valves configured for zone %s", self._current_zone.get("name"))
+            return await self.async_step_zone_valves()
+        
         self._current_zone["valves"] = self._valves
 
         if self._current_zone_index is not None:
             self._zones[self._current_zone_index] = self._current_zone
+            _LOGGER.info("Updated zone: %s", self._current_zone.get("name"))
         else:
             self._zones.append(self._current_zone)
+            _LOGGER.info("Added new zone: %s", self._current_zone.get("name"))
 
-        return self.async_create_entry(
-            title="",
-            data={"zones": self._zones},
+        # ✅ Uložit do options a AUTOMATICKY RELOAD
+        self.hass.config_entries.async_update_entry(
+            self.config_entry,
+            options={"zones": self._zones}
         )
+        
+        # ✅ Trigger reload integrace ihned
+        self.hass.async_create_task(
+            self.hass.config_entries.async_reload(self.config_entry.entry_id)
+        )
+        
+        _LOGGER.info("Zone saved and integration reload triggered")
+        
+        # Vrátit se do hlavního menu
+        return await self.async_step_init()
 
     async def async_step_finish(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
         """Finish configuration."""
+        # ✅ Finální save a reload
+        self.hass.config_entries.async_update_entry(
+            self.config_entry,
+            options={"zones": self._zones}
+        )
+        
+        # ✅ Reload pro aplikování změn
+        self.hass.async_create_task(
+            self.hass.config_entries.async_reload(self.config_entry.entry_id)
+        )
+        
+        _LOGGER.info("Configuration finished, integration reloaded")
+        
         return self.async_create_entry(
             title="",
             data={"zones": self._zones},
