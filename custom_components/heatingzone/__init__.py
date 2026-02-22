@@ -27,6 +27,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     
+    # ✅ Přidat update listener pro reload po změně options
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
     
     _LOGGER.info("Heating Zone integration loaded for %s", entry.data.get("name"))
@@ -44,6 +45,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Reload config entry."""
+    """Reload config entry when options change."""
+    _LOGGER.info("Reloading Heating Zone integration due to configuration change")
     await async_unload_entry(hass, entry)
     await async_setup_entry(hass, entry)
