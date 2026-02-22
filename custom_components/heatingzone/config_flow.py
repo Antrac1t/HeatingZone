@@ -82,7 +82,7 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
-        # DON'T set self.config_entry - it's already a property from parent class
+        # Tady NESMÍ být: self.config_entry = config_entry
         self._zones: list[dict[str, Any]] = []
         self._current_zone_index: int | None = None
         self._current_zone: dict[str, Any] = {}
