@@ -1,7 +1,8 @@
 """Config flow for Thermozona Gas."""
+from __future__ import annotations
+
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.core import callback
 from homeassistant.helpers import selector
 import homeassistant.helpers.config_validation as cv
 
@@ -21,10 +22,10 @@ class ThermoZonaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize."""
-        self._data = {}
-        self._zones = []
+        self._data: dict = {}
+        self._zones: list = []
 
     async def async_step_user(self, user_input=None):
         """Handle initial step."""
@@ -59,7 +60,10 @@ class ThermoZonaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     "valve_open_time", default=DEFAULT_VALVE_OPEN_TIME
                 ): vol.All(vol.Coerce(int), vol.Range(min=30, max=300)),
                 vol.Required("control_mode", default=CONTROL_MODE_ONOFF): vol.In(
-                    [CONTROL_MODE_ONOFF, CONTROL_MODE_PWM]
+                    {
+                        CONTROL_MODE_ONOFF: "On/Off s hysterezí",
+                        CONTROL_MODE_PWM: "PWM řízení"
+                    }
                 ),
             }
         )
@@ -116,11 +120,11 @@ class ThermoZonaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             if not user_input.get("add_zone"):
                 self._data["zones"] = self._zones
-                return self.async_create_entry(title="Thermozona Gas", data=self._data)
+                return self.async_create_entry(
+                    title="Thermozona Gas", 
+                    data=self._data
+                )
             return await self.async_step_zone_config()
-
-        zones_list = "\n".join([f"- {z['name']}" for z in self._zones])
-        description = f"Nakonfigurované zóny ({len(self._zones)}):\n{zones_list}" if self._zones else "Zatím žádné zóny"
 
         data_schema = vol.Schema(
             {
@@ -131,7 +135,6 @@ class ThermoZonaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="add_zone",
             data_schema=data_schema,
-            description_placeholders={"zones": description},
         )
 
     async def async_step_zone_config(self, user_input=None):
@@ -139,17 +142,15 @@ class ThermoZonaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input is not None:
-            # Build zone configuration
             zone = {
                 "name": user_input["zone_name"],
-                "main_circuit": user_input.get("main_circuit"),
+                "main_circuit": user_input.get("main_circuit", "none"),
                 "room_sensor": user_input["room_temp_sensor"],
                 "target_temp": user_input.get("target_temp", DEFAULT_TARGET_TEMP),
                 "hysteresis": user_input.get("hysteresis", DEFAULT_HYSTERESIS),
                 "sub_valves": [],
             }
 
-            # Add sub-valves
             for i in range(1, 5):
                 valve_key = f"sub_valve_{i}"
                 floor_key = f"floor_sensor_{i}"
@@ -168,16 +169,15 @@ class ThermoZonaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._zones.append(zone)
             return await self.async_step_add_zone()
 
-        # Build main circuit options
-        main_circuits = {"none": "Žádný hlavní okruh"}
+        main_circuits = {"none": "Žádný"}
         if self._data.get("main_circuits"):
             for key in self._data["main_circuits"].keys():
-                main_circuits[key] = f"Okruh: {key}"
+                main_circuits[key] = key.replace("_", " ").title()
 
         data_schema = vol.Schema(
             {
                 vol.Required("zone_name"): cv.string,
-                vol.Optional("main_circuit"): vol.In(main_circuits),
+                vol.Optional("main_circuit", default="none"): vol.In(main_circuits),
                 vol.Required("room_temp_sensor"): selector.EntitySelector(
                     selector.EntitySelectorConfig(
                         domain="sensor", device_class="temperature"
@@ -189,7 +189,6 @@ class ThermoZonaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Optional("hysteresis", default=DEFAULT_HYSTERESIS): vol.All(
                     vol.Coerce(float), vol.Range(min=0.1, max=2.0)
                 ),
-                # Sub-valves 1-4
                 vol.Optional("sub_valve_1"): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="switch")
                 ),
