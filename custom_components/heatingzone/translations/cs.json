@@ -13,6 +13,14 @@
           "valve_open_time": "Čas Otevření Ventilu (sekundy)"
         }
       }
+    },
+    "error": {
+      "cannot_connect": "Nepodařilo se připojit",
+      "invalid_auth": "Neplatné ověření",
+      "unknown": "Neočekávaná chyba"
+    },
+    "abort": {
+      "already_configured": "Systém je již nakonfigurován"
     }
   },
   "options": {
@@ -88,13 +96,13 @@
         }
       },
       "zone_valves": {
-        "title": "⚙️ Správa Ventilů",
-        "description": "Zóna: **{zone_name}**\n\nNakonfigurované ventily:\n{valve_list}\n\n💡 Každá zóna potřebuje alespoň jeden ventil.",
+        "title": "⚙️ Správa Ventilů - {zone_name}",
+        "description": "Nakonfigurované ventily:\n{valve_list}\n\n💡 Každá zóna potřebuje alespoň jeden ventil.",
         "menu_options": {
-          "add": "➕ Přidat Ventil",
-          "edit": "✏️ Upravit Ventil",
-          "delete": "🗑️ Smazat Ventil",
-          "done": "✅ Uložit Zónu a Pokračovat"
+          "add_valve": "➕ Přidat Ventil",
+          "edit_valve": "✏️ Upravit Ventil",
+          "delete_valve": "🗑️ Smazat Ventil",
+          "done_valves": "✅ Uložit Zónu a Pokračovat"
         }
       },
       "add_valve": {
@@ -125,6 +133,11 @@
           "valve": "Entita Spínače Ventilu",
           "floor_sensor": "Teplotní Čidlo Podlahy (volitelné)",
           "max_floor_temp": "Maximální Teplota Podlahy (°C)"
+        },
+        "data_description": {
+          "valve": "Switch entita která ovládá tento ventil",
+          "floor_sensor": "Volitelné: Monitorování teploty podlahy pro zabránění přetápění",
+          "max_floor_temp": "Pokud je použit senzor podlahy, ventil se zavře při dosažení této teploty"
         }
       },
       "delete_valve": {
