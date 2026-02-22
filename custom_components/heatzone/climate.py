@@ -1,3 +1,4 @@
+components/thermozona_gas/climate.py
 """Climate platform for Thermozona Gas."""
 from __future__ import annotations
 
@@ -37,21 +38,18 @@ async def async_setup_entry(
     zones = entry.options.get("zones", [])
     
     if not zones:
-        _LOGGER.warning("No zones configured, skipping climate setup")
+        _LOGGER.info("No zones configured yet")
         return
     
-    entities = [ThermoZonaClimate(coordinator, zone, entry) for zone in zones]
+    _LOGGER.info("Setting up %d climate zones", len(zones))
+    
+    entities = []
+    for zone in zones:
+        zone_name = zone.get("name", "Unknown")
+        _LOGGER.debug("Creating climate entity for zone: %s", zone_name)
+        entities.append(ThermoZonaClimate(coordinator, zone, entry))
+    
     async_add_entities(entities)
-    
-    # Listener pro změny v options
-    @callback
-    def async_update_entity(hass: HomeAssistant, entry: ConfigEntry) -> None:
-        """Update entities when options change."""
-        hass.async_create_task(
-            hass.config_entries.async_reload(entry.entry_id)
-        )
-    
-    entry.async_on_unload(entry.add_update_listener(async_update_entity))
 
 
 class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
@@ -68,12 +66,25 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
         super().__init__(coordinator)
         self._zone_config = zone_config
         self._entry = entry
-        self._attr_name = zone_config["name"]
-        self._attr_unique_id = f"{entry.entry_id}_{zone_config['name']}"
+        
+        zone_name = zone_config.get("name", "Unknown Zone")
+        self._attr_name = zone_name
+        
+        # Vytvořit unique_id z názvu zóny
+        safe_name = zone_name.lower().replace(" ", "_").replace("-", "_")
+        self._attr_unique_id = f"{DOMAIN}_{entry.entry_id}_{safe_name}"
+        
         self._target_temperature = zone_config.get("target_temp", 21.0)
         self._hvac_mode = HVACMode.OFF
         self._is_heating = False
         self._control_task = None
+        
+        _LOGGER.info(
+            "Initialized zone '%s' with %d valves, target: %.1f°C",
+            zone_name,
+            len(zone_config.get("valves", [])),
+            self._target_temperature
+        )
 
     async def async_added_to_hass(self) -> None:
         """Run when entity about to be added to hass."""
@@ -86,12 +97,14 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
             CONTROL_INTERVAL
         )
         
-        _LOGGER.info("Zone %s: Control loop started", self._attr_name)
+        _LOGGER.info("Zone %s: Control loop started (every %s)", 
+                    self._attr_name, CONTROL_INTERVAL)
 
     async def async_will_remove_from_hass(self) -> None:
         """Run when entity will be removed from hass."""
         if self._control_task:
             self._control_task()
+            _LOGGER.info("Zone %s: Control loop stopped", self._attr_name)
         await super().async_will_remove_from_hass()
 
     @property
@@ -176,6 +189,8 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
         """Set new target temperature."""
         if temp := kwargs.get(ATTR_TEMPERATURE):
             self._target_temperature = temp
+            _LOGGER.info("Zone %s: Target temperature changed to %.1f°C", 
+                        self._attr_name, temp)
             # Okamžitě vyhodnotit změnu
             await self._async_control_zone()
             self.async_write_ha_state()
@@ -186,7 +201,8 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
         self._hvac_mode = hvac_mode
         
         if old_mode != hvac_mode:
-            _LOGGER.info("Zone %s: HVAC mode changed to %s", self._attr_name, hvac_mode)
+            _LOGGER.info("Zone %s: HVAC mode changed from %s to %s", 
+                        self._attr_name, old_mode, hvac_mode)
             await self._async_control_zone()
         
         self.async_write_ha_state()
@@ -316,8 +332,9 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
             if zone["name"] == self._zone_config["name"]:
                 continue
             
-            # Check if zone is heating and uses this valve
-            zone_entity_id = f"climate.{zone['name'].lower().replace(' ', '_')}"
+            # Create expected entity_id
+            safe_name = zone["name"].lower().replace(" ", "_").replace("-", "_")
+            zone_entity_id = f"climate.{safe_name}"
             zone_state = self.hass.states.get(zone_entity_id)
             
             if zone_state:
@@ -335,7 +352,8 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
         all_zones = self._entry.options.get("zones", [])
         
         for zone in all_zones:
-            zone_entity_id = f"climate.{zone['name'].lower().replace(' ', '_')}"
+            safe_name = zone["name"].lower().replace(" ", "_").replace("-", "_")
+            zone_entity_id = f"climate.{safe_name}"
             zone_state = self.hass.states.get(zone_entity_id)
             
             if zone_state:
