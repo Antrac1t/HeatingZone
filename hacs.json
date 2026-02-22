@@ -1,6 +1,8 @@
 {
-  "name": "Heating Zones",
-  "homeassistant": "2023.1.0",
+  "name": "Heating Zone",
+  "content_in_root": false,
+  "filename": "heating_zone",
   "render_readme": true,
-  "country": ["CZ", "SK"]
+  "domains": ["climate", "sensor", "number", "select"],
+  "homeassistant": "2024.1.0"
 }
