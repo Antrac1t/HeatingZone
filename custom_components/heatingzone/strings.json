@@ -27,21 +27,24 @@
     "step": {
       "init": {
         "title": "Manage Heating Zones",
+        "description": "Configure your heating zones",
         "menu_options": {
-          "add_zone": "Add New Zone",
-          "edit_zone": "Edit Zone",
-          "delete_zone": "Delete Zone",
-          "finish": "Finish"
+          "add_zone": "➕ Add New Zone",
+          "edit_zone": "✏️ Edit Existing Zone",
+          "delete_zone": "🗑️ Delete Zone",
+          "finish": "✅ Finish Configuration"
         }
       },
       "edit_zone": {
         "title": "Select Zone to Edit",
+        "description": "Choose which zone you want to modify",
         "data": {
           "zone": "Zone"
         }
       },
       "delete_zone": {
         "title": "Select Zone to Delete",
+        "description": "⚠️ This action cannot be undone",
         "data": {
           "zone": "Zone"
         }
@@ -54,61 +57,92 @@
           "room_sensor": "Room Temperature Sensor",
           "room_size": "Room Size (m²)",
           "target_temp": "Default Target Temperature (°C)"
+        },
+        "data_description": {
+          "name": "Example: Living Room, Bedroom, Office",
+          "room_sensor": "Temperature sensor for this zone",
+          "room_size": "Used for PWM cycle calculation",
+          "target_temp": "Initial target temperature (can be changed later)"
         }
       },
       "zone_control": {
         "title": "Control Mode",
-        "description": "Choose control algorithm",
+        "description": "Choose the heating control algorithm for this zone",
         "data": {
           "control_mode": "Control Mode",
-          "hysteresis": "Hysteresis (°C, for Bang-Bang mode)"
+          "hysteresis": "Hysteresis (°C)"
+        },
+        "data_description": {
+          "control_mode": "Bang-Bang: Simple ON/OFF | PWM: Proportional control for better comfort",
+          "hysteresis": "Temperature difference before switching (only for Bang-Bang mode)"
         }
       },
       "zone_pwm": {
-        "title": "PWM Settings",
-        "description": "{info}",
+        "title": "PWM Advanced Settings",
+        "description": "Configure PWM (Pulse Width Modulation) parameters for proportional heating control.\n\n💡 **Recommended defaults** work well for most cases.\n\n**What is PWM?**\nPWM cycles the heating ON and OFF in short intervals. Instead of fully heating until target, it adjusts the ON/OFF ratio based on how far you are from target temperature.\n\n**Parameters explained:**\n• **Cycle Time**: Full PWM period (ON + OFF time)\n• **Min ON/OFF Time**: Safety minimums to avoid rapid switching\n• **Kp (Proportional)**: How aggressively to heat (higher = more aggressive)\n• **Ki (Integral)**: Eliminates steady-state error over time",
         "data": {
           "pwm_cycle_time": "PWM Cycle Time (minutes)",
           "pwm_min_on_time": "Minimum ON Time (minutes)",
           "pwm_min_off_time": "Minimum OFF Time (minutes)",
           "pwm_kp": "Proportional Gain (Kp)",
           "pwm_ki": "Integral Gain (Ki)"
+        },
+        "data_description": {
+          "pwm_cycle_time": "5-30 minutes (default: 15). Shorter = faster response, longer = more stable",
+          "pwm_min_on_time": "1-10 minutes (default: 3). Prevents very short heating bursts",
+          "pwm_min_off_time": "1-10 minutes (default: 3). Prevents very short cooling periods",
+          "pwm_kp": "1-100 (default: 30). Higher = more aggressive heating response",
+          "pwm_ki": "0-10 (default: 2). Higher = faster elimination of temperature offset"
         }
       },
       "zone_valves": {
-        "title": "Manage Valves - {zone_name}",
-        "description": "Current valves:\n{valve_list}",
+        "title": "⚙️ Manage Valves",
+        "description": "Zone: **{zone_name}**\n\nConfigured valves:\n{valve_list}\n\n💡 Each zone needs at least one valve.",
         "menu_options": {
-          "add": "Add Valve",
-          "edit": "Edit Valve",
-          "delete": "Delete Valve",
-          "done": "Save Zone"
+          "add": "➕ Add Valve",
+          "edit": "✏️ Edit Valve",
+          "delete": "🗑️ Delete Valve",
+          "done": "✅ Save Zone & Continue"
         }
       },
       "add_valve": {
-        "title": "Add Valve",
+        "title": "Add Valve to Zone",
+        "description": "Configure a heating valve (actuator) for this zone",
         "data": {
-          "valve": "Valve Switch",
+          "valve": "Valve Switch Entity",
           "floor_sensor": "Floor Temperature Sensor (optional)",
           "max_floor_temp": "Maximum Floor Temperature (°C)"
+        },
+        "data_description": {
+          "valve": "Switch entity that controls this heating valve",
+          "floor_sensor": "Optional: Monitor floor temperature to prevent overheating",
+          "max_floor_temp": "If floor sensor is used, valve closes when this temperature is reached"
         }
       },
       "edit_valve": {
         "title": "Select Valve to Edit",
+        "description": "Choose which valve you want to modify",
         "data": {
           "valve_index": "Valve"
         }
       },
       "edit_valve_details": {
-        "title": "Edit Valve",
+        "title": "Edit Valve Settings",
+        "description": "Modify valve configuration",
         "data": {
-          "valve": "Valve Switch",
+          "valve": "Valve Switch Entity",
           "floor_sensor": "Floor Temperature Sensor (optional)",
           "max_floor_temp": "Maximum Floor Temperature (°C)"
+        },
+        "data_description": {
+          "valve": "Switch entity that controls this heating valve",
+          "floor_sensor": "Optional: Monitor floor temperature to prevent overheating",
+          "max_floor_temp": "If floor sensor is used, valve closes when this temperature is reached"
         }
       },
       "delete_valve": {
-        "title": "Select Valve to Delete",
+        "title": "Delete Valve",
+        "description": "⚠️ Select valve to remove from this zone",
         "data": {
           "valve_index": "Valve"
         }
