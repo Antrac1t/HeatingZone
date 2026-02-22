@@ -82,7 +82,6 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
-        # Tady NESMÍ být: self.config_entry = config_entry
         self._zones: list[dict[str, Any]] = []
         self._current_zone_index: int | None = None
         self._current_zone: dict[str, Any] = {}
@@ -279,30 +278,22 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
         """Manage valves for the zone."""
-        if user_input is not None:
-            action = user_input.get("action")
-            
-            if action == "add":
-                return await self.async_step_add_valve()
-            elif action == "edit" and self._valves:
-                return await self.async_step_edit_valve()
-            elif action == "delete" and self._valves:
-                return await self.async_step_delete_valve()
-            elif action == "done":
-                return await self.async_step_save_zone()
-
         valve_list = "\n".join(
             f"• {v['valve']}" for v in self._valves
         ) if self._valves else "No valves configured"
 
-        menu_options = ["add"]
+        menu_options = ["add_valve"]
         if self._valves:
-            menu_options.extend(["edit", "delete"])
-        menu_options.append("done")
+            menu_options.extend(["edit_valve", "delete_valve"])
+        menu_options.append("done_valves")
 
         return self.async_show_menu(
             step_id="zone_valves",
             menu_options=menu_options,
+            description_placeholders={
+                "zone_name": self._current_zone.get("name", "Zone"),
+                "valve_list": valve_list,
+            }
         )
 
     async def async_step_add_valve(
@@ -407,7 +398,7 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
             ),
         )
 
-    async def async_step_save_zone(
+    async def async_step_done_valves(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
         """Save the zone."""
