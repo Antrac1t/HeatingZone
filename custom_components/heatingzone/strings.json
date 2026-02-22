@@ -1,0 +1,118 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Heating Zone System Setup",
+        "description": "Configure your heating system with multiple zones",
+        "data": {
+          "name": "System Name",
+          "boiler_switch": "Boiler Switch",
+          "opentherm_temp": "OpenTherm Supply Temperature (optional)",
+          "opentherm_return": "OpenTherm Return Temperature (optional)",
+          "opentherm_modulation": "OpenTherm Modulation (optional)",
+          "valve_open_time": "Valve Opening Time (seconds)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid authentication",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "System is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Manage Heating Zones",
+        "menu_options": {
+          "add_zone": "Add New Zone",
+          "edit_zone": "Edit Zone",
+          "delete_zone": "Delete Zone",
+          "finish": "Finish"
+        }
+      },
+      "edit_zone": {
+        "title": "Select Zone to Edit",
+        "data": {
+          "zone": "Zone"
+        }
+      },
+      "delete_zone": {
+        "title": "Select Zone to Delete",
+        "data": {
+          "zone": "Zone"
+        }
+      },
+      "zone_basic": {
+        "title": "Zone Basic Settings",
+        "description": "Configure basic zone parameters",
+        "data": {
+          "name": "Zone Name",
+          "room_sensor": "Room Temperature Sensor",
+          "room_size": "Room Size (m²)",
+          "target_temp": "Default Target Temperature (°C)"
+        }
+      },
+      "zone_control": {
+        "title": "Control Mode",
+        "description": "Choose control algorithm",
+        "data": {
+          "control_mode": "Control Mode",
+          "hysteresis": "Hysteresis (°C, for Bang-Bang mode)"
+        }
+      },
+      "zone_pwm": {
+        "title": "PWM Settings",
+        "description": "{info}",
+        "data": {
+          "pwm_cycle_time": "PWM Cycle Time (minutes)",
+          "pwm_min_on_time": "Minimum ON Time (minutes)",
+          "pwm_min_off_time": "Minimum OFF Time (minutes)",
+          "pwm_kp": "Proportional Gain (Kp)",
+          "pwm_ki": "Integral Gain (Ki)"
+        }
+      },
+      "zone_valves": {
+        "title": "Manage Valves - {zone_name}",
+        "description": "Current valves:\n{valve_list}",
+        "menu_options": {
+          "add": "Add Valve",
+          "edit": "Edit Valve",
+          "delete": "Delete Valve",
+          "done": "Save Zone"
+        }
+      },
+      "add_valve": {
+        "title": "Add Valve",
+        "data": {
+          "valve": "Valve Switch",
+          "floor_sensor": "Floor Temperature Sensor (optional)",
+          "max_floor_temp": "Maximum Floor Temperature (°C)"
+        }
+      },
+      "edit_valve": {
+        "title": "Select Valve to Edit",
+        "data": {
+          "valve_index": "Valve"
+        }
+      },
+      "edit_valve_details": {
+        "title": "Edit Valve",
+        "data": {
+          "valve": "Valve Switch",
+          "floor_sensor": "Floor Temperature Sensor (optional)",
+          "max_floor_temp": "Maximum Floor Temperature (°C)"
+        }
+      },
+      "delete_valve": {
+        "title": "Select Valve to Delete",
+        "data": {
+          "valve_index": "Valve"
+        }
+      }
+    }
+  }
+}
