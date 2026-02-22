@@ -1,12 +1,104 @@
 {
   "config": {
-    "abort": {
-      "configuration_yaml_only": "Thanks for trying Thermozona! Setup is currently YAML-only. Open configuration.yaml, add a `thermozona:` block with your zones, then restart Home Assistant. The README walks through the required options: {readme_url}."
-    },
     "step": {
       "user": {
-        "title": "Thermozona setup",
-        "description": "Thermozona is configured via configuration.yaml. Please follow the instructions in the README."
+        "title": "Heating Zone - Initial Setup",
+        "description": "Configure global settings for your heating system",
+        "data": {
+          "outside_temp_sensor": "Outside Temperature Sensor",
+          "opentherm_device": "OpenTherm Boiler (Climate entity)",
+          "heating_base_offset": "Heating Base Offset",
+          "weather_slope_heat": "Weather Compensation Slope",
+          "min_water_temp": "Minimum Water Temperature",
+          "max_water_temp": "Maximum Water Temperature"
+        },
+        "data_description": {
+          "outside_temp_sensor": "Required: Outdoor temperature sensor for weather compensation",
+          "opentherm_device": "Optional: Your OpenTherm boiler climate entity (e.g., climate.boiler)",
+          "heating_base_offset": "Temperature offset above warmest zone (°C)",
+          "weather_slope_heat": "Weather compensation curve slope (0.1-1.0)",
+          "min_water_temp": "Minimum supply water temperature (°C)",
+          "max_water_temp": "Maximum supply water temperature (°C)"
+        }
+      }
+    },
+    "error": {
+      "no_outside_temp": "Outside temperature sensor is required"
+    },
+    "abort": {
+      "already_configured": "Heating Zone is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Heating Zone Options",
+        "description": "Manage zones and settings",
+        "menu_options": {
+          "add_zone": "Add New Zone",
+          "list_zones": "View Zones"
+        }
+      },
+      "add_zone": {
+        "title": "Add Zone - Basic Info",
+        "description": "Enter zone identification",
+        "data": {
+          "zone_id": "Zone ID (unique, lowercase, no spaces)",
+          "zone_name": "Zone Display Name"
+        },
+        "data_description": {
+          "zone_id": "Unique identifier (e.g., 'living_room')",
+          "zone_name": "Friendly name shown in UI (e.g., 'Living Room')"
+        }
+      },
+      "zone_config": {
+        "title": "Zone Configuration",
+        "description": "Configure zone heating parameters",
+        "data": {
+          "circuits": "Circuit Switches",
+          "temp_sensor": "Room Temperature Sensor",
+          "temp_supply": "Supply Temperature (optional)",
+          "temp_return": "Return Temperature (optional)",
+          "temp_floor": "Floor Temperature (optional)",
+          "control_mode": "Control Mode",
+          "hysteresis": "Hysteresis",
+          "pwm_cycle_time": "PWM Cycle Time (minutes)",
+          "pwm_kp": "PWM Proportional Gain (Kp)",
+          "pwm_ki": "PWM Integral Gain (Ki)",
+          "valve_open_time": "Valve Opening Time (seconds)",
+          "valve_close_time": "Valve Closing Time (seconds)",
+          "max_floor_temp": "Maximum Floor Temperature"
+        },
+        "data_description": {
+          "circuits": "Select one or more switch entities for this zone's heating circuits",
+          "temp_sensor": "Temperature sensor for this room (required)",
+          "temp_supply": "Supply water temperature sensor for power calculation",
+          "temp_return": "Return water temperature sensor for power calculation",
+          "temp_floor": "Floor surface temperature for safety limits",
+          "control_mode": "bang_bang = simple on/off, pwm = advanced modulation",
+          "hysteresis": "Temperature deadband for bang_bang mode (°C)",
+          "pwm_cycle_time": "Length of one PWM cycle (10-30 minutes)",
+          "pwm_kp": "Proportional gain for PWM control (10-50)",
+          "pwm_ki": "Integral gain for PWM control (0.5-5.0)",
+          "valve_open_time": "Time for thermoelectric valve to fully open (typically 120s)",
+          "valve_close_time": "Time for thermoelectric valve to fully close (typically 120s)",
+          "max_floor_temp": "Safety limit for floor surface temperature (°C)"
+        }
+      },
+      "list_zones": {
+        "title": "Configured Zones",
+        "description": "{message}"
+      }
+    },
+    "error": {
+      "zone_exists": "A zone with this ID already exists"
+    }
+  },
+  "selector": {
+    "control_mode": {
+      "options": {
+        "bang_bang": "Bang-Bang (Simple On/Off)",
+        "pwm": "PWM (Advanced Modulation)"
       }
     }
   }
