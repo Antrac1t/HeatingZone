@@ -2,103 +2,116 @@
   "config": {
     "step": {
       "user": {
-        "title": "Heating Zone - Initial Setup",
-        "description": "Configure global settings for your heating system",
+        "title": "Thermozona Gas Heating Setup",
+        "description": "Configure your gas heating system",
         "data": {
-          "outside_temp_sensor": "Outside Temperature Sensor",
-          "opentherm_device": "OpenTherm Boiler (Climate entity)",
-          "heating_base_offset": "Heating Base Offset",
-          "weather_slope_heat": "Weather Compensation Slope",
-          "min_water_temp": "Minimum Water Temperature",
-          "max_water_temp": "Maximum Water Temperature"
-        },
-        "data_description": {
-          "outside_temp_sensor": "Required: Outdoor temperature sensor for weather compensation",
-          "opentherm_device": "Optional: Your OpenTherm boiler climate entity (e.g., climate.boiler)",
-          "heating_base_offset": "Temperature offset above warmest zone (°C)",
-          "weather_slope_heat": "Weather compensation curve slope (0.1-1.0)",
-          "min_water_temp": "Minimum supply water temperature (°C)",
-          "max_water_temp": "Maximum supply water temperature (°C)"
+          "name": "System Name",
+          "boiler_switch": "Boiler Switch",
+          "opentherm_temp": "OpenTherm Supply Temperature (optional)",
+          "opentherm_return": "OpenTherm Return Temperature (optional)",
+          "opentherm_modulation": "OpenTherm Modulation (optional)",
+          "valve_open_time": "Valve Opening Time (seconds)"
         }
       }
     },
     "error": {
-      "no_outside_temp": "Outside temperature sensor is required"
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid authentication",
+      "unknown": "Unexpected error"
     },
     "abort": {
-      "already_configured": "Heating Zone is already configured"
+      "already_configured": "Device is already configured"
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Heating Zone Options",
-        "description": "Manage zones and settings",
+        "title": "Manage Heating Zones",
         "menu_options": {
           "add_zone": "Add New Zone",
-          "list_zones": "View Zones"
+          "edit_zone": "Edit Zone",
+          "delete_zone": "Delete Zone",
+          "finish": "Finish"
         }
       },
-      "add_zone": {
-        "title": "Add Zone - Basic Info",
-        "description": "Enter zone identification",
+      "edit_zone": {
+        "title": "Select Zone to Edit",
         "data": {
-          "zone_id": "Zone ID (unique, lowercase, no spaces)",
-          "zone_name": "Zone Display Name"
-        },
-        "data_description": {
-          "zone_id": "Unique identifier (e.g., 'living_room')",
-          "zone_name": "Friendly name shown in UI (e.g., 'Living Room')"
+          "zone": "Zone"
         }
       },
-      "zone_config": {
-        "title": "Zone Configuration",
-        "description": "Configure zone heating parameters",
+      "delete_zone": {
+        "title": "Select Zone to Delete",
         "data": {
-          "circuits": "Circuit Switches",
-          "temp_sensor": "Room Temperature Sensor",
-          "temp_supply": "Supply Temperature (optional)",
-          "temp_return": "Return Temperature (optional)",
-          "temp_floor": "Floor Temperature (optional)",
+          "zone": "Zone"
+        }
+      },
+      "zone_basic": {
+        "title": "Zone Basic Settings",
+        "description": "Configure basic zone parameters",
+        "data": {
+          "name": "Zone Name",
+          "room_sensor": "Room Temperature Sensor",
+          "room_size": "Room Size (m²)",
+          "target_temp": "Default Target Temperature (°C)"
+        }
+      },
+      "zone_control": {
+        "title": "Control Mode",
+        "description": "Choose control algorithm",
+        "data": {
           "control_mode": "Control Mode",
-          "hysteresis": "Hysteresis",
-          "pwm_cycle_time": "PWM Cycle Time (minutes)",
-          "pwm_kp": "PWM Proportional Gain (Kp)",
-          "pwm_ki": "PWM Integral Gain (Ki)",
-          "valve_open_time": "Valve Opening Time (seconds)",
-          "valve_close_time": "Valve Closing Time (seconds)",
-          "max_floor_temp": "Maximum Floor Temperature"
-        },
-        "data_description": {
-          "circuits": "Select one or more switch entities for this zone's heating circuits",
-          "temp_sensor": "Temperature sensor for this room (required)",
-          "temp_supply": "Supply water temperature sensor for power calculation",
-          "temp_return": "Return water temperature sensor for power calculation",
-          "temp_floor": "Floor surface temperature for safety limits",
-          "control_mode": "bang_bang = simple on/off, pwm = advanced modulation",
-          "hysteresis": "Temperature deadband for bang_bang mode (°C)",
-          "pwm_cycle_time": "Length of one PWM cycle (10-30 minutes)",
-          "pwm_kp": "Proportional gain for PWM control (10-50)",
-          "pwm_ki": "Integral gain for PWM control (0.5-5.0)",
-          "valve_open_time": "Time for thermoelectric valve to fully open (typically 120s)",
-          "valve_close_time": "Time for thermoelectric valve to fully close (typically 120s)",
-          "max_floor_temp": "Safety limit for floor surface temperature (°C)"
+          "hysteresis": "Hysteresis (°C, for Bang-Bang mode)"
         }
       },
-      "list_zones": {
-        "title": "Configured Zones",
-        "description": "{message}"
-      }
-    },
-    "error": {
-      "zone_exists": "A zone with this ID already exists"
-    }
-  },
-  "selector": {
-    "control_mode": {
-      "options": {
-        "bang_bang": "Bang-Bang (Simple On/Off)",
-        "pwm": "PWM (Advanced Modulation)"
+      "zone_pwm": {
+        "title": "PWM Settings",
+        "description": "{info}",
+        "data": {
+          "pwm_cycle_time": "PWM Cycle Time (minutes)",
+          "pwm_min_on_time": "Minimum ON Time (minutes)",
+          "pwm_min_off_time": "Minimum OFF Time (minutes)",
+          "pwm_kp": "Proportional Gain (Kp)",
+          "pwm_ki": "Integral Gain (Ki)"
+        }
+      },
+      "zone_valves": {
+        "title": "Manage Valves - {zone_name}",
+        "description": "Current valves:\n{valve_list}",
+        "menu_options": {
+          "add": "Add Valve",
+          "edit": "Edit Valve",
+          "delete": "Delete Valve",
+          "done": "Save Zone"
+        }
+      },
+      "add_valve": {
+        "title": "Add Valve",
+        "data": {
+          "valve": "Valve Switch",
+          "floor_sensor": "Floor Temperature Sensor (optional)",
+          "max_floor_temp": "Maximum Floor Temperature (°C)"
+        }
+      },
+      "edit_valve": {
+        "title": "Select Valve to Edit",
+        "data": {
+          "valve_index": "Valve"
+        }
+      },
+      "edit_valve_details": {
+        "title": "Edit Valve",
+        "data": {
+          "valve": "Valve Switch",
+          "floor_sensor": "Floor Temperature Sensor (optional)",
+          "max_floor_temp": "Maximum Floor Temperature (°C)"
+        }
+      },
+      "delete_valve": {
+        "title": "Select Valve to Delete",
+        "data": {
+          "valve_index": "Valve"
+        }
       }
     }
   }
