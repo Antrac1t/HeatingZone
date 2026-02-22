@@ -79,20 +79,21 @@ class HeatingZoneConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
     """Handle options flow for Heating Zone."""
-    
+
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
-        self.config_entry = config_entry
+        # DON'T set self.config_entry - it's already a property from parent class
         self._zones: list[dict[str, Any]] = []
         self._current_zone_index: int | None = None
         self._current_zone: dict[str, Any] = {}
         self._valves: list[dict[str, Any]] = []
+        self._editing_valve_idx: int | None = None
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
         """Manage zones."""
-        self._zones = self.config_entry.options.get("zones", [])
+        self._zones = list(self.config_entry.options.get("zones", []))
         
         return self.async_show_menu(
             step_id="init",
@@ -117,8 +118,8 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
 
         if user_input is not None:
             self._current_zone_index = int(user_input["zone"])
-            self._current_zone = self._zones[self._current_zone_index].copy()
-            self._valves = self._current_zone.get("valves", [])
+            self._current_zone = dict(self._zones[self._current_zone_index])
+            self._valves = list(self._current_zone.get("valves", []))
             return await self.async_step_zone_basic()
 
         zone_options = {
@@ -143,7 +144,6 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
 
         if user_input is not None:
             zone_idx = int(user_input["zone"])
-            deleted_name = self._zones[zone_idx]["name"]
             self._zones.pop(zone_idx)
             
             return self.async_create_entry(
@@ -170,7 +170,7 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
         """Configure basic zone settings."""
         errors: dict[str, str] = {}
         
-        defaults = self._current_zone if self._current_zone else {}
+        defaults = self._current_zone
 
         if user_input is not None:
             self._current_zone.update(user_input)
@@ -207,7 +207,7 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
         """Configure control mode and PWM settings."""
-        defaults = self._current_zone if self._current_zone else {}
+        defaults = self._current_zone
 
         if user_input is not None:
             self._current_zone.update(user_input)
@@ -241,7 +241,7 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
         """Configure PWM parameters."""
-        defaults = self._current_zone if self._current_zone else {}
+        defaults = self._current_zone
 
         if user_input is not None:
             self._current_zone.update(user_input)
@@ -253,46 +253,26 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
                 {
                     vol.Optional(
                         "pwm_cycle_time",
-                        description={
-                            "suggested_value": defaults.get("pwm_cycle_time", 15)
-                        }
+                        description={"suggested_value": defaults.get("pwm_cycle_time", 15)}
                     ): vol.All(vol.Coerce(int), vol.Range(min=5, max=30)),
                     vol.Optional(
                         "pwm_min_on_time",
-                        description={
-                            "suggested_value": defaults.get("pwm_min_on_time", 3)
-                        }
+                        description={"suggested_value": defaults.get("pwm_min_on_time", 3)}
                     ): vol.All(vol.Coerce(int), vol.Range(min=1, max=10)),
                     vol.Optional(
                         "pwm_min_off_time",
-                        description={
-                            "suggested_value": defaults.get("pwm_min_off_time", 3)
-                        }
+                        description={"suggested_value": defaults.get("pwm_min_off_time", 3)}
                     ): vol.All(vol.Coerce(int), vol.Range(min=1, max=10)),
                     vol.Optional(
                         "pwm_kp",
-                        description={
-                            "suggested_value": defaults.get("pwm_kp", 30.0)
-                        }
+                        description={"suggested_value": defaults.get("pwm_kp", 30.0)}
                     ): vol.All(vol.Coerce(float), vol.Range(min=1.0, max=100.0)),
                     vol.Optional(
                         "pwm_ki",
-                        description={
-                            "suggested_value": defaults.get("pwm_ki", 2.0)
-                        }
+                        description={"suggested_value": defaults.get("pwm_ki", 2.0)}
                     ): vol.All(vol.Coerce(float), vol.Range(min=0.0, max=10.0)),
                 }
             ),
-            description_placeholders={
-                "info": (
-                    "PWM Parameters:\n"
-                    "• Cycle time: Duration of one PWM cycle (5-30 min)\n"
-                    "• Min ON time: Minimum valve opening duration (1-10 min)\n"
-                    "• Min OFF time: Minimum valve closing duration (1-10 min)\n"
-                    "• Kp: Proportional gain (higher = more aggressive)\n"
-                    "• Ki: Integral gain (reduces steady-state error)"
-                )
-            }
         )
 
     async def async_step_zone_valves(
@@ -323,10 +303,6 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
         return self.async_show_menu(
             step_id="zone_valves",
             menu_options=menu_options,
-            description_placeholders={
-                "zone_name": self._current_zone.get("name", "Zone"),
-                "valve_list": valve_list,
-            }
         )
 
     async def async_step_add_valve(
@@ -334,7 +310,7 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
     ) -> config_entries.ConfigFlowResult:
         """Add a valve to the zone."""
         if user_input is not None:
-            self._valves.append(user_input)
+            self._valves.append(dict(user_input))
             return await self.async_step_zone_valves()
 
         return self.async_show_form(
@@ -359,9 +335,8 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
     ) -> config_entries.ConfigFlowResult:
         """Edit a valve."""
         if user_input is not None:
-            if "valve_index" in user_input:
-                valve_idx = int(user_input["valve_index"])
-                return await self.async_step_edit_valve_details(valve_idx)
+            self._editing_valve_idx = int(user_input["valve_index"])
+            return await self.async_step_edit_valve_details()
 
         valve_options = {
             str(idx): valve["valve"] for idx, valve in enumerate(self._valves)
@@ -377,14 +352,14 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
         )
 
     async def async_step_edit_valve_details(
-        self, valve_idx: int, user_input: dict[str, Any] | None = None
+        self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
         """Edit valve details."""
         if user_input is not None:
-            self._valves[valve_idx] = user_input
+            self._valves[self._editing_valve_idx] = dict(user_input)
             return await self.async_step_zone_valves()
 
-        valve = self._valves[valve_idx]
+        valve = self._valves[self._editing_valve_idx]
 
         return self.async_show_form(
             step_id="edit_valve_details",
