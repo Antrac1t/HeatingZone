@@ -1,46 +1,27 @@
-"""Thermozona Gas integration - UI config only."""
+"""The Thermozona Gas integration."""
+import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.const import Platform
 
 from .const import DOMAIN
-from .boiler import GasBoilerController
+from .coordinator import ThermoZonaCoordinator
 
-PLATFORMS = [Platform.CLIMATE, Platform.SENSOR, Platform.NUMBER]
+_LOGGER = logging.getLogger(__name__)
 
-
-async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    """Set up Thermozona Gas component (no YAML)."""
-    return True
+PLATFORMS = [Platform.CLIMATE]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Thermozona Gas from UI config entry."""
+    """Set up Thermozona Gas from a config entry."""
+    
+    coordinator = ThermoZonaCoordinator(hass, entry)
+    await coordinator.async_config_entry_first_refresh()
+    
     hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN][entry.entry_id] = coordinator
     
-    # Create boiler controller
-    boiler = GasBoilerController(
-        hass=hass,
-        outside_temp_sensor=entry.data.get("outside_temp_sensor"),
-        opentherm_device=entry.data.get("opentherm_device"),
-        heating_base_offset=entry.data.get("heating_base_offset", 3.0),
-        flow_curve_offset=entry.data.get("flow_curve_offset", 0.0),
-        weather_slope_heat=entry.data.get("weather_slope_heat", 0.25),
-        min_water_temp=entry.data.get("min_water_temp", 30.0),
-        max_water_temp=entry.data.get("max_water_temp", 45.0),
-    )
-    
-    await boiler.async_setup()
-    
-    hass.data[DOMAIN][entry.entry_id] = {
-        "config": entry.data,
-        "boiler": boiler,
-    }
-
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    
-    # Update boiler when options change
-    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
     
     return True
 
@@ -50,14 +31,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     
     if unload_ok:
-        # Cleanup boiler
-        data = hass.data[DOMAIN].pop(entry.entry_id)
-        if "boiler" in data:
-            await data["boiler"].async_shutdown()
+        hass.data[DOMAIN].pop(entry.entry_id)
     
     return unload_ok
-
-
-async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Reload config entry when options change."""
-    await hass.config_entries.async_reload(entry.entry_id)
