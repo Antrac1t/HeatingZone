@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 from datetime import timedelta
+import asyncio
 
 from homeassistant.components.climate import (
     ClimateEntity,
@@ -146,6 +147,8 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
             "hysteresis": self._zone_config.get("hysteresis", 0.5),
             "valves_count": len(self._zone_config.get("valves", [])),
             "heating": self._is_heating,
+            "current_temp": self.current_temperature,
+            "target_temp": self._target_temperature,
         }
         
         # Valve states
@@ -189,11 +192,22 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
         if temp := kwargs.get(ATTR_TEMPERATURE):
             old_temp = self._target_temperature
             self._target_temperature = temp
-            _LOGGER.info("Zone %s: Target temperature changed from %.1f°C to %.1f°C", 
-                        self._attr_name, old_temp, temp)
+            current = self.current_temperature
+            
+            _LOGGER.info(
+                "Zone %s: Target changed %.1f°C → %.1f°C (current: %.1f°C, heating: %s)",
+                self._attr_name, old_temp, temp, current or 0, self._is_heating
+            )
+            
             # Okamžitě vyhodnotit změnu
             await self._async_control_zone()
             self.async_write_ha_state()
+            
+            # Dát ostatním zónám čas aktualizovat se
+            await asyncio.sleep(1)
+            
+            # Force check boiler state
+            await self._check_and_control_boiler()
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Set new HVAC mode."""
@@ -204,6 +218,10 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
             _LOGGER.info("Zone %s: HVAC mode changed from %s to %s", 
                         self._attr_name, old_mode, hvac_mode)
             await self._async_control_zone()
+            
+            # Force check boiler after mode change
+            await asyncio.sleep(1)
+            await self._check_and_control_boiler()
         
         self.async_write_ha_state()
 
@@ -265,7 +283,7 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
         # Turn on boiler
         boiler_switch = self._entry.data.get("boiler_switch")
         if boiler_switch:
-            _LOGGER.debug("Zone %s: Turning ON boiler %s", self._attr_name, boiler_switch)
+            _LOGGER.info("Zone %s: 🔥 Turning ON boiler %s", self._attr_name, boiler_switch)
             await self.hass.services.async_call(
                 "switch", "turn_on", {"entity_id": boiler_switch}, blocking=True
             )
@@ -290,43 +308,61 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
                     except (ValueError, TypeError):
                         pass
             
-            _LOGGER.debug("Zone %s: Turning ON valve %s", self._attr_name, valve_switch)
+            _LOGGER.info("Zone %s: ✅ Turning ON valve %s", self._attr_name, valve_switch)
             await self.hass.services.async_call(
                 "switch", "turn_on", {"entity_id": valve_switch}, blocking=True
             )
 
     async def _async_turn_off_zone(self) -> None:
         """Turn off heating for this zone."""
+        _LOGGER.info("Zone %s: 🛑 Turning off zone heating", self._attr_name)
+        
         # Turn off valves first
         for valve_config in self._zone_config.get("valves", []):
             valve_switch = valve_config["valve"]
             
             # Check if valve is needed by other zones
             if await self._is_valve_needed_by_other_zone(valve_switch):
-                _LOGGER.debug(
+                _LOGGER.info(
                     "Zone %s: Valve %s needed by another zone, keeping ON",
                     self._attr_name, valve_switch
                 )
                 continue
             
-            _LOGGER.debug("Zone %s: Turning OFF valve %s", self._attr_name, valve_switch)
+            _LOGGER.info("Zone %s: ❌ Turning OFF valve %s", self._attr_name, valve_switch)
             await self.hass.services.async_call(
                 "switch", "turn_off", {"entity_id": valve_switch}, blocking=True
             )
 
-        # Check if boiler can be turned off
-        # IMPORTANT: Check after a small delay to ensure other zones have updated
-        if not await self._is_any_zone_heating():
-            boiler_switch = self._entry.data.get("boiler_switch")
-            if boiler_switch:
-                _LOGGER.info("Zone %s: All zones inactive, turning OFF boiler %s", 
-                           self._attr_name, boiler_switch)
-                await self.hass.services.async_call(
-                    "switch", "turn_off", {"entity_id": boiler_switch}, blocking=True
-                )
-            else:
-                _LOGGER.debug("Zone %s: Other zones still heating, keeping boiler ON", 
-                            self._attr_name)
+    async def _check_and_control_boiler(self) -> None:
+        """Check if boiler should be on or off based on all zones."""
+        _LOGGER.info("🔍 Checking boiler state across all zones...")
+        
+        any_heating = await self._is_any_zone_heating()
+        boiler_switch = self._entry.data.get("boiler_switch")
+        
+        if not boiler_switch:
+            _LOGGER.warning("No boiler switch configured!")
+            return
+        
+        boiler_state = self.hass.states.get(boiler_switch)
+        boiler_is_on = boiler_state and boiler_state.state == "on"
+        
+        _LOGGER.info(
+            "🔍 Boiler check: any_zone_heating=%s, boiler_is_on=%s",
+            any_heating, boiler_is_on
+        )
+        
+        if not any_heating and boiler_is_on:
+            _LOGGER.info("❄️ No zones heating, turning OFF boiler %s", boiler_switch)
+            await self.hass.services.async_call(
+                "switch", "turn_off", {"entity_id": boiler_switch}, blocking=True
+            )
+        elif any_heating and not boiler_is_on:
+            _LOGGER.info("🔥 Some zones need heating, turning ON boiler %s", boiler_switch)
+            await self.hass.services.async_call(
+                "switch", "turn_on", {"entity_id": boiler_switch}, blocking=True
+            )
 
     async def _is_valve_needed_by_other_zone(self, valve_switch: str) -> bool:
         """Check if valve is needed by another zone that is heating."""
@@ -359,22 +395,34 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
         all_zones = self._entry.options.get("zones", [])
         
         heating_zones = []
+        idle_zones = []
+        
         for zone in all_zones:
             safe_name = zone["name"].lower().replace(" ", "_").replace("-", "_")
             zone_entity_id = f"climate.{safe_name}"
             zone_state = self.hass.states.get(zone_entity_id)
             
             if zone_state:
-                # Check actual heating state, not just HVAC mode
                 is_heating = zone_state.attributes.get("heating", False)
+                hvac_mode = zone_state.state
+                current = zone_state.attributes.get("current_temp")
+                target = zone_state.attributes.get("target_temp")
+                
+                _LOGGER.debug(
+                    "Zone %s: mode=%s, heating=%s, current=%.1f°C, target=%.1f°C",
+                    zone["name"], hvac_mode, is_heating, current or 0, target or 0
+                )
+                
                 if is_heating:
                     heating_zones.append(zone["name"])
+                else:
+                    idle_zones.append(zone["name"])
         
         if heating_zones:
-            _LOGGER.debug("Zones currently heating: %s", ", ".join(heating_zones))
+            _LOGGER.info("🔥 Zones HEATING: %s", ", ".join(heating_zones))
             return True
         else:
-            _LOGGER.debug("No zones are currently heating")
+            _LOGGER.info("❄️ NO zones heating (idle: %s)", ", ".join(idle_zones) if idle_zones else "none")
             return False
 
     @callback
