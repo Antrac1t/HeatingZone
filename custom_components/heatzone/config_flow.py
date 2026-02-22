@@ -72,7 +72,8 @@ class OptionsFlow(config_entries.OptionsFlow):
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize."""
-        self.config_entry = config_entry
+        super().__init__()
+        self._config_entry = config_entry
         self._zone_index: int | None = None
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
@@ -89,7 +90,7 @@ class OptionsFlow(config_entries.OptionsFlow):
                 return await self.async_step_circuits()
         
         # Get current zones count
-        zones = self.config_entry.options.get("zones", [])
+        zones = self._config_entry.options.get("zones", [])
         zones_count = len(zones)
         
         actions = {
@@ -114,12 +115,12 @@ class OptionsFlow(config_entries.OptionsFlow):
                 if user_input.get(switch_key):
                     circuits[key] = user_input[switch_key]
             
-            new_options = dict(self.config_entry.options)
+            new_options = dict(self._config_entry.options)
             new_options["main_circuits"] = circuits
             
             return self.async_create_entry(title="", data=new_options)
 
-        current_circuits = self.config_entry.options.get("main_circuits", {})
+        current_circuits = self._config_entry.options.get("main_circuits", {})
 
         return self.async_show_form(
             step_id="circuits",
@@ -153,7 +154,7 @@ class OptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_list_zones(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """List zones with edit/delete."""
-        zones = list(self.config_entry.options.get("zones", []))
+        zones = list(self._config_entry.options.get("zones", []))
         
         if user_input is not None:
             action = user_input.get("action")
@@ -167,7 +168,7 @@ class OptionsFlow(config_entries.OptionsFlow):
                 zone_idx = int(action.split("_")[1])
                 zones.pop(zone_idx)
                 
-                new_options = dict(self.config_entry.options)
+                new_options = dict(self._config_entry.options)
                 new_options["zones"] = zones
                 
                 return self.async_create_entry(title="", data=new_options)
@@ -202,7 +203,7 @@ class OptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_zone_config(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Configure zone."""
-        zones = list(self.config_entry.options.get("zones", []))
+        zones = list(self._config_entry.options.get("zones", []))
         
         if user_input is not None:
             zone = {
@@ -228,7 +229,7 @@ class OptionsFlow(config_entries.OptionsFlow):
             else:
                 zones.append(zone)
             
-            new_options = dict(self.config_entry.options)
+            new_options = dict(self._config_entry.options)
             new_options["zones"] = zones
             
             return self.async_create_entry(title="", data=new_options)
@@ -240,7 +241,7 @@ class OptionsFlow(config_entries.OptionsFlow):
 
         # Prepare circuits list
         circuits_dict = {"none": "Žádný"}
-        configured_circuits = self.config_entry.options.get("main_circuits", {})
+        configured_circuits = self._config_entry.options.get("main_circuits", {})
         circuits_dict.update({k: k.title() for k in configured_circuits.keys()})
 
         # Prepare sub-valves defaults
