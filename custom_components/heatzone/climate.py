@@ -204,7 +204,7 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
             self.async_write_ha_state()
             
             # Dát ostatním zónám čas aktualizovat se
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.5)
             
             # Force check boiler state
             await self._check_and_control_boiler()
@@ -220,7 +220,7 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
             await self._async_control_zone()
             
             # Force check boiler after mode change
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.5)
             await self._check_and_control_boiler()
         
         self.async_write_ha_state()
@@ -235,8 +235,9 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
         if self._hvac_mode == HVACMode.OFF:
             if self._is_heating:
                 _LOGGER.info("Zone %s: Turning OFF (HVAC mode OFF)", self._attr_name)
-                await self._async_turn_off_zone()
+                # Set flag BEFORE calling turn_off to avoid race condition
                 self._is_heating = False
+                await self._async_turn_off_zone()
             return
 
         current_temp = self.current_temperature
@@ -266,17 +267,18 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
                 "Zone %s: START heating (%.1f°C < %.1f°C - %.1f)",
                 self._attr_name, current_temp, target, hysteresis
             )
-            await self._async_turn_on_zone()
             self._is_heating = True
+            await self._async_turn_on_zone()
             self.async_write_ha_state()
         elif not should_heat and self._is_heating:
             _LOGGER.info(
                 "Zone %s: STOP heating (%.1f°C >= %.1f°C + %.1f)",
                 self._attr_name, current_temp, target, hysteresis
             )
-            await self._async_turn_off_zone()
+            # Set flag FIRST before turning off
             self._is_heating = False
             self.async_write_ha_state()
+            await self._async_turn_off_zone()
 
     async def _async_turn_on_zone(self) -> None:
         """Turn on heating for this zone."""
