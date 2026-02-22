@@ -1,0 +1,139 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Nastavení Topného Systému",
+        "description": "Nakonfigurujte váš topný systém s více zónami",
+        "data": {
+          "name": "Název Systému",
+          "boiler_switch": "Spínač Kotle",
+          "opentherm_temp": "OpenTherm Teplota Přívodní (volitelné)",
+          "opentherm_return": "OpenTherm Teplota Zpátečky (volitelné)",
+          "opentherm_modulation": "OpenTherm Modulace (volitelné)",
+          "valve_open_time": "Čas Otevření Ventilu (sekundy)"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Správa Topných Zón",
+        "description": "Nakonfigurujte vaše topné zóny",
+        "menu_options": {
+          "add_zone": "➕ Přidat Novou Zónu",
+          "edit_zone": "✏️ Upravit Existující Zónu",
+          "delete_zone": "🗑️ Smazat Zónu",
+          "finish": "✅ Dokončit Konfiguraci"
+        }
+      },
+      "edit_zone": {
+        "title": "Vyberte Zónu k Úpravě",
+        "description": "Vyberte kterou zónu chcete upravit",
+        "data": {
+          "zone": "Zóna"
+        }
+      },
+      "delete_zone": {
+        "title": "Vyberte Zónu ke Smazání",
+        "description": "⚠️ Tuto akci nelze vrátit zpět",
+        "data": {
+          "zone": "Zóna"
+        }
+      },
+      "zone_basic": {
+        "title": "Základní Nastavení Zóny",
+        "description": "Nakonfigurujte základní parametry zóny",
+        "data": {
+          "name": "Název Zóny",
+          "room_sensor": "Teplotní Čidlo Místnosti",
+          "room_size": "Velikost Místnosti (m²)",
+          "target_temp": "Výchozí Cílová Teplota (°C)"
+        },
+        "data_description": {
+          "name": "Příklad: Obývák, Ložnice, Kancelář",
+          "room_sensor": "Teplotní senzor pro tuto zónu",
+          "room_size": "Použito pro výpočet PWM cyklu",
+          "target_temp": "Počáteční cílová teplota (později lze změnit)"
+        }
+      },
+      "zone_control": {
+        "title": "Režim Řízení",
+        "description": "Vyberte algoritmus řízení topení pro tuto zónu",
+        "data": {
+          "control_mode": "Režim Řízení",
+          "hysteresis": "Hystereze (°C)"
+        },
+        "data_description": {
+          "control_mode": "Bang-Bang: Jednoduché ZAP/VYP | PWM: Proporcionální řízení pro vyšší komfort",
+          "hysteresis": "Teplotní rozdíl před přepnutím (pouze pro Bang-Bang režim)"
+        }
+      },
+      "zone_pwm": {
+        "title": "Pokročilé Nastavení PWM",
+        "description": "Nakonfigurujte parametry PWM (Pulzně Šířková Modulace) pro proporcionální řízení topení.\n\n💡 **Doporučené výchozí hodnoty** fungují dobře ve většině případů.\n\n**Co je PWM?**\nPWM cyklicky zapíná a vypíná topení v krátkých intervalech. Místo plného vytápění až k cíli upravuje poměr ZAP/VYP podle toho, jak jste daleko od cílové teploty.\n\n**Vysvětlení parametrů:**\n• **Čas Cyklu**: Kompletní PWM perioda (čas ZAP + VYP)\n• **Min Čas ZAP/VYP**: Bezpečnostní minima pro zamezení rychlého přepínání\n• **Kp (Proporcionální)**: Jak agresivně topit (vyšší = agresivnější)\n• **Ki (Integrální)**: Eliminuje ustálenou chybu v čase",
+        "data": {
+          "pwm_cycle_time": "Čas PWM Cyklu (minuty)",
+          "pwm_min_on_time": "Minimální Čas ZAP (minuty)",
+          "pwm_min_off_time": "Minimální Čas VYP (minuty)",
+          "pwm_kp": "Proporcionální Zesílení (Kp)",
+          "pwm_ki": "Integrální Zesílení (Ki)"
+        },
+        "data_description": {
+          "pwm_cycle_time": "5-30 minut (výchozí: 15). Kratší = rychlejší odezva, delší = stabilnější",
+          "pwm_min_on_time": "1-10 minut (výchozí: 3). Zabraňuje velmi krátkým topným pulzům",
+          "pwm_min_off_time": "1-10 minut (výchozí: 3). Zabraňuje velmi krátkým chladicím periodám",
+          "pwm_kp": "1-100 (výchozí: 30). Vyšší = agresivnější topná odezva",
+          "pwm_ki": "0-10 (výchozí: 2). Vyšší = rychlejší odstranění teplotního offsetu"
+        }
+      },
+      "zone_valves": {
+        "title": "⚙️ Správa Ventilů",
+        "description": "Zóna: **{zone_name}**\n\nNakonfigurované ventily:\n{valve_list}\n\n💡 Každá zóna potřebuje alespoň jeden ventil.",
+        "menu_options": {
+          "add": "➕ Přidat Ventil",
+          "edit": "✏️ Upravit Ventil",
+          "delete": "🗑️ Smazat Ventil",
+          "done": "✅ Uložit Zónu a Pokračovat"
+        }
+      },
+      "add_valve": {
+        "title": "Přidat Ventil do Zóny",
+        "description": "Nakonfigurujte ventil (pohon) pro tuto zónu",
+        "data": {
+          "valve": "Entita Spínače Ventilu",
+          "floor_sensor": "Teplotní Čidlo Podlahy (volitelné)",
+          "max_floor_temp": "Maximální Teplota Podlahy (°C)"
+        },
+        "data_description": {
+          "valve": "Switch entita která ovládá tento ventil",
+          "floor_sensor": "Volitelné: Monitorování teploty podlahy pro zabránění přetápění",
+          "max_floor_temp": "Pokud je použit senzor podlahy, ventil se zavře při dosažení této teploty"
+        }
+      },
+      "edit_valve": {
+        "title": "Vyberte Ventil k Úpravě",
+        "description": "Vyberte který ventil chcete upravit",
+        "data": {
+          "valve_index": "Ventil"
+        }
+      },
+      "edit_valve_details": {
+        "title": "Upravit Nastavení Ventilu",
+        "description": "Změňte konfiguraci ventilu",
+        "data": {
+          "valve": "Entita Spínače Ventilu",
+          "floor_sensor": "Teplotní Čidlo Podlahy (volitelné)",
+          "max_floor_temp": "Maximální Teplota Podlahy (°C)"
+        }
+      },
+      "delete_valve": {
+        "title": "Smazat Ventil",
+        "description": "⚠️ Vyberte ventil pro odstranění z této zóny",
+        "data": {
+          "valve_index": "Ventil"
+        }
+      }
+    }
+  }
+}
