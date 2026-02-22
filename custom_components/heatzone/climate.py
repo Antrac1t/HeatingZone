@@ -1,4 +1,3 @@
-components/thermozona_gas/climate.py
 """Climate platform for Thermozona Gas."""
 from __future__ import annotations
 
