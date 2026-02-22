@@ -96,8 +96,8 @@
         }
       },
       "zone_valves": {
-        "title": "⚙️ Manage Valves - {zone_name}",
-        "description": "Configured valves:\n{valve_list}\n\n💡 Each zone needs at least one valve.",
+        "title": "Manage Valves - {zone_name}",
+        "description": "Configured valves:\n{valve_list}\n\n Each zone needs at least one valve.",
         "menu_options": {
           "add_valve": "➕ Add Valve",
           "edit_valve": "✏️ Edit Valve",
