@@ -256,7 +256,15 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
                     vol.Optional(
                         "target_temp",
                         description={"suggested_value": defaults.get("target_temp", DEFAULT_TARGET_TEMP)}
-                    ): vol.All(vol.Coerce(float), vol.Range(min=5, max=30)),
+                    ): selector.NumberSelector(
+                        selector.NumberSelectorConfig(
+                            min=5,
+                            max=30,
+                            step=0.2,
+                            unit_of_measurement="°C",
+                            mode=selector.NumberSelectorMode.BOX,
+                        )
+                    ),
                 }
             ),
             errors=errors,
