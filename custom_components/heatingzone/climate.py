@@ -26,6 +26,7 @@ _LOGGER = logging.getLogger(__name__)
 
 # Jak často kontrolovat teplotu a řídit topení
 CONTROL_INTERVAL = timedelta(seconds=30)
+TARGET_TEMPERATURE_STEP = 0.2
 
 
 async def async_setup_entry(
@@ -58,6 +59,7 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
 
     _attr_has_entity_name = True
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
+    _attr_target_temperature_step = TARGET_TEMPERATURE_STEP
     _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
     _attr_hvac_modes = [HVACMode.HEAT, HVACMode.OFF]
     _enable_turn_on_off_backwards_compatibility = False
