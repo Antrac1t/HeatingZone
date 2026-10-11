@@ -1,6 +1,7 @@
 """DataUpdateCoordinator for Heating Zone integration."""
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import timedelta
 from typing import Any
@@ -26,34 +27,10 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             update_interval=timedelta(seconds=30),
         )
         self.entry = entry
+        self.heat_source_lock = asyncio.Lock()
+        self.last_heat_source_on = None
+        self.last_heat_source_off = None
 
     async def _async_update_data(self) -> dict[str, Any]:
-        """Fetch data from OpenTherm sensors."""
-        data = {}
-        
-        # Read OpenTherm sensors if configured
-        if opentherm_temp := self.entry.data.get("opentherm_temp"):
-            state = self.hass.states.get(opentherm_temp)
-            if state and state.state not in ("unknown", "unavailable"):
-                try:
-                    data["opentherm_temp"] = float(state.state)
-                except (ValueError, TypeError):
-                    pass
-        
-        if opentherm_return := self.entry.data.get("opentherm_return"):
-            state = self.hass.states.get(opentherm_return)
-            if state and state.state not in ("unknown", "unavailable"):
-                try:
-                    data["opentherm_return"] = float(state.state)
-                except (ValueError, TypeError):
-                    pass
-        
-        if opentherm_mod := self.entry.data.get("opentherm_modulation"):
-            state = self.hass.states.get(opentherm_mod)
-            if state and state.state not in ("unknown", "unavailable"):
-                try:
-                    data["opentherm_modulation"] = float(state.state)
-                except (ValueError, TypeError):
-                    pass
-        
-        return data
+        """Return shared runtime data for heating source control."""
+        return {}
