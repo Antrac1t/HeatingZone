@@ -10,6 +10,10 @@
           "heat_mode_entity": "Heat Mode Entity (optional)",
           "heating_mode_value": "Heating Mode Value",
           "idle_mode_value": "Idle Mode Value (optional)",
+          "control_heat_source": "Control Heat Source Directly From Room Demand",
+          "buffer_top_temp_sensor": "Upper Buffer Temperature Sensor (optional)",
+          "buffer_bottom_temp_sensor": "Lower Buffer Temperature Sensor (optional)",
+          "min_buffer_top_temp": "Minimum Upper Buffer Temperature For Pumps (0 = disabled)",
           "valve_open_time": "Valve Opening Time (seconds)",
           "min_run_time": "Minimum Run Time (minutes)",
           "min_off_time": "Minimum Off Time (minutes)"
@@ -46,6 +50,10 @@
           "heat_mode_entity": "Heat Mode Entity (optional)",
           "heating_mode_value": "Heating Mode Value",
           "idle_mode_value": "Idle Mode Value (optional)",
+          "control_heat_source": "Control Heat Source Directly From Room Demand",
+          "buffer_top_temp_sensor": "Upper Buffer Temperature Sensor (optional)",
+          "buffer_bottom_temp_sensor": "Lower Buffer Temperature Sensor (optional)",
+          "min_buffer_top_temp": "Minimum Upper Buffer Temperature For Pumps (0 = disabled)",
           "valve_open_time": "Valve Opening Time (seconds)",
           "min_run_time": "Minimum Run Time (minutes)",
           "min_off_time": "Minimum Off Time (minutes)"
@@ -71,11 +79,13 @@
         "data": {
           "name": "Zone Name",
           "room_sensor": "Room Temperature Sensor",
+          "circulation_pump": "Circulation Pump For This Zone (optional)",
           "target_temp": "Default Target Temperature (C)"
         },
         "data_description": {
           "name": "Example: Living Room, Bedroom, Office",
           "room_sensor": "Temperature sensor for this zone",
+          "circulation_pump": "Assign the shared circulation pump that serves this room group",
           "target_temp": "Initial target temperature (can be changed later)"
         }
       },
