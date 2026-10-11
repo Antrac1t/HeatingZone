@@ -10,6 +10,10 @@
           "heat_mode_entity": "Entita Režimu TČ (volitelné)",
           "heating_mode_value": "Hodnota Režimu Topení",
           "idle_mode_value": "Hodnota Klidového Režimu (volitelné)",
+          "control_heat_source": "Řídit TČ Přímo Podle Požadavků Místností",
+          "buffer_top_temp_sensor": "Horní Teplotní Čidlo AN (volitelné)",
+          "buffer_bottom_temp_sensor": "Dolní Teplotní Čidlo AN (volitelné)",
+          "min_buffer_top_temp": "Minimální Horní Teplota AN Pro Sepnutí Oběhovek (0 = vypnuto)",
           "valve_open_time": "Čas Otevření Ventilu (sekundy)",
           "min_run_time": "Minimální Doba Běhu (minuty)",
           "min_off_time": "Minimální Doba Vypnutí (minuty)"
@@ -46,6 +50,10 @@
           "heat_mode_entity": "Entita Režimu TČ (volitelné)",
           "heating_mode_value": "Hodnota Režimu Topení",
           "idle_mode_value": "Hodnota Klidového Režimu (volitelné)",
+          "control_heat_source": "Řídit TČ Přímo Podle Požadavků Místností",
+          "buffer_top_temp_sensor": "Horní Teplotní Čidlo AN (volitelné)",
+          "buffer_bottom_temp_sensor": "Dolní Teplotní Čidlo AN (volitelné)",
+          "min_buffer_top_temp": "Minimální Horní Teplota AN Pro Sepnutí Oběhovek (0 = vypnuto)",
           "valve_open_time": "Čas Otevření Ventilu (sekundy)",
           "min_run_time": "Minimální Doba Běhu (minuty)",
           "min_off_time": "Minimální Doba Vypnutí (minuty)"
@@ -71,11 +79,13 @@
         "data": {
           "name": "Název Zóny",
           "room_sensor": "Teplotní Čidlo Místnosti",
+          "circulation_pump": "Oběhové Čerpadlo Pro Tuto Zónu (volitelné)",
           "target_temp": "Výchozí Cílová Teplota (C)"
         },
         "data_description": {
           "name": "Příklad: Obývák, Ložnice, Kancelář",
           "room_sensor": "Teplotní senzor pro tuto zónu",
+          "circulation_pump": "Přiřaďte společnou oběhovku, která obsluhuje tuto skupinu místností",
           "target_temp": "Počáteční cílová teplota (později lze změnit)"
         }
       },
