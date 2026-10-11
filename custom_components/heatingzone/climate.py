@@ -183,9 +183,17 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
         attrs["heat_mode_entity"] = self._entry.data.get("heat_mode_entity")
         attrs["heating_mode_value"] = self._entry.data.get("heating_mode_value", "Heating Only")
         attrs["idle_mode_value"] = self._entry.data.get("idle_mode_value", "")
+        attrs["control_heat_source"] = self._is_direct_heat_source_control_enabled()
+        attrs["buffer_top_temp_sensor"] = self._entry.data.get("buffer_top_temp_sensor")
+        attrs["buffer_bottom_temp_sensor"] = self._entry.data.get("buffer_bottom_temp_sensor")
+        attrs["buffer_top_temp"] = self._get_buffer_top_temperature()
+        attrs["buffer_bottom_temp"] = self._get_buffer_bottom_temperature()
+        attrs["min_buffer_top_temp"] = self._entry.data.get("min_buffer_top_temp", 0.0)
+        attrs["buffer_ready_for_pump"] = self._is_buffer_ready_for_circulation()
         attrs["valve_open_time"] = self._entry.data.get("valve_open_time", 120)
         attrs["min_run_time"] = self._entry.data.get("min_run_time", 15)
         attrs["min_off_time"] = self._entry.data.get("min_off_time", 10)
+        attrs["circulation_pump"] = self._get_circulation_pump()
         
         return attrs
 
@@ -196,6 +204,45 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
     def _get_heat_mode_entity(self) -> str | None:
         """Return configured heat mode select entity."""
         return self._entry.data.get("heat_mode_entity")
+
+    def _get_circulation_pump(self) -> str | None:
+        """Return configured circulation pump for this zone."""
+        return self._zone_config.get("circulation_pump")
+
+    def _is_direct_heat_source_control_enabled(self) -> bool:
+        """Return whether room demand should switch the shared heat source."""
+        return self._entry.data.get("control_heat_source", True)
+
+    def _get_float_state(self, entity_id: str | None) -> float | None:
+        """Return a numeric entity state when available."""
+        if not entity_id:
+            return None
+
+        state = self.hass.states.get(entity_id)
+        if not state or state.state in ("unknown", "unavailable"):
+            return None
+
+        try:
+            return float(state.state)
+        except (ValueError, TypeError):
+            return None
+
+    def _get_buffer_top_temperature(self) -> float | None:
+        """Return current upper buffer tank temperature."""
+        return self._get_float_state(self._entry.data.get("buffer_top_temp_sensor"))
+
+    def _get_buffer_bottom_temperature(self) -> float | None:
+        """Return current lower buffer tank temperature."""
+        return self._get_float_state(self._entry.data.get("buffer_bottom_temp_sensor"))
+
+    def _is_buffer_ready_for_circulation(self) -> bool:
+        """Return whether the buffer tank is warm enough to start circulation pumps."""
+        min_buffer_top_temp = float(self._entry.data.get("min_buffer_top_temp", 0.0))
+        if min_buffer_top_temp <= 0:
+            return True
+
+        buffer_top_temp = self._get_buffer_top_temperature()
+        return buffer_top_temp is not None and buffer_top_temp >= min_buffer_top_temp
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set new target temperature."""
@@ -238,8 +285,9 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
     async def _async_control_loop(self, now=None) -> None:
         """Periodic control loop."""
         await self._async_control_zone()
+        await self._async_ensure_zone_circulation()
         await self._check_and_control_heat_source()
-        if not self._is_heating:
+        if not self._is_heating and self._is_direct_heat_source_control_enabled():
             await self._async_close_deferred_valves()
 
     async def _async_control_zone(self) -> None:
@@ -331,7 +379,45 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
             )
             await asyncio.sleep(valve_open_time)
 
+            circulation_pump = self._get_circulation_pump()
+            if circulation_pump and self._is_buffer_ready_for_circulation():
+                _LOGGER.info("Zone %s: Turning ON circulation pump %s", self._attr_name, circulation_pump)
+                await self.hass.services.async_call(
+                    "switch", "turn_on", {"entity_id": circulation_pump}, blocking=True
+                )
+            elif circulation_pump:
+                _LOGGER.info(
+                    "Zone %s: Buffer top temperature is below minimum, keeping circulation pump %s OFF",
+                    self._attr_name,
+                    circulation_pump,
+                )
+
         await self._check_and_control_heat_source()
+
+    async def _async_ensure_zone_circulation(self) -> None:
+        """Ensure an active zone can start its circulation pump once the buffer is ready."""
+        if not self._is_heating:
+            return
+
+        circulation_pump = self._get_circulation_pump()
+        if not circulation_pump:
+            return
+
+        pump_state = self.hass.states.get(circulation_pump)
+        if pump_state and pump_state.state == "on":
+            return
+
+        if not self._is_buffer_ready_for_circulation():
+            return
+
+        _LOGGER.info(
+            "Zone %s: Buffer temperature is ready, turning ON circulation pump %s",
+            self._attr_name,
+            circulation_pump,
+        )
+        await self.hass.services.async_call(
+            "switch", "turn_on", {"entity_id": circulation_pump}, blocking=True
+        )
 
     async def _async_turn_off_zone(self) -> None:
         """Turn off heating for this zone."""
@@ -344,6 +430,11 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
         heat_source_switch = self._get_heat_source_switch()
         heat_source_state = self.hass.states.get(heat_source_switch) if heat_source_switch else None
         heat_source_is_on = bool(heat_source_state and heat_source_state.state == "on")
+        should_defer_zone_shutdown = (
+            self._is_direct_heat_source_control_enabled()
+            and heat_source_is_on
+            and not any_other_zone_heating
+        )
         
         # Turn off valves first
         for valve_config in self._zone_config.get("valves", []):
@@ -357,7 +448,7 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
                 )
                 continue
 
-            if heat_source_is_on and not any_other_zone_heating:
+            if should_defer_zone_shutdown:
                 _LOGGER.info(
                     "Zone %s: Heat source still ON, deferring valve close for %s",
                     self._attr_name,
@@ -369,6 +460,14 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
             await self.hass.services.async_call(
                 "switch", "turn_off", {"entity_id": valve_switch}, blocking=True
             )
+
+        circulation_pump = self._get_circulation_pump()
+        if circulation_pump and not should_defer_zone_shutdown:
+            if not await self._is_pump_needed_by_other_zone(circulation_pump):
+                _LOGGER.info("Zone %s: Turning OFF circulation pump %s", self._attr_name, circulation_pump)
+                await self.hass.services.async_call(
+                    "switch", "turn_off", {"entity_id": circulation_pump}, blocking=True
+                )
 
         await self._check_and_control_heat_source()
 
@@ -395,8 +494,28 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
                     "switch", "turn_off", {"entity_id": valve_switch}, blocking=True
                 )
 
+        circulation_pump = self._get_circulation_pump()
+        if circulation_pump and not await self._is_pump_needed_by_other_zone(circulation_pump):
+            pump_state = self.hass.states.get(circulation_pump)
+            if pump_state and pump_state.state == "on":
+                _LOGGER.info(
+                    "Zone %s: Deferred OFF for circulation pump %s after heat source stop",
+                    self._attr_name,
+                    circulation_pump,
+                )
+                await self.hass.services.async_call(
+                    "switch", "turn_off", {"entity_id": circulation_pump}, blocking=True
+                )
+
     async def _check_and_control_heat_source(self) -> None:
         """Check if heat source should be on or off based on all zones."""
+        if not self._is_direct_heat_source_control_enabled():
+            _LOGGER.debug(
+                "Zone %s: Direct heat source control disabled, skipping shared heat source switching",
+                self._attr_name,
+            )
+            return
+
         _LOGGER.info("🔍 Checking heat source state across all zones...")
         
         any_heating = await self._is_any_zone_heating()
@@ -520,6 +639,25 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
 
         for zone in all_zones:
             if zone["name"] == self._zone_config["name"]:
+                continue
+
+            safe_name = zone["name"].lower().replace(" ", "_").replace("-", "_")
+            zone_entity_id = f"climate.{safe_name}"
+            zone_state = self.hass.states.get(zone_entity_id)
+            if zone_state and zone_state.attributes.get("heating", False):
+                return True
+
+        return False
+
+    async def _is_pump_needed_by_other_zone(self, circulation_pump: str) -> bool:
+        """Check if the circulation pump is still needed by another heating zone."""
+        all_zones = self._entry.options.get("zones", [])
+
+        for zone in all_zones:
+            if zone["name"] == self._zone_config["name"]:
+                continue
+
+            if zone.get("circulation_pump") != circulation_pump:
                 continue
 
             safe_name = zone["name"].lower().replace(" ", "_").replace("-", "_")
