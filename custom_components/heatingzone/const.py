@@ -6,19 +6,14 @@ VERSION = "1.0.0"
 
 DEFAULT_NAME = "Heating Zone System"
 
-# Control modes
-CONTROL_MODE_ONOFF = "onoff"
-CONTROL_MODE_PWM = "pwm"
-
 # Configuration keys
-CONF_BOILER_SWITCH = "boiler_switch"
-CONF_OPENTHERM_DEVICE = "opentherm_device"
-CONF_OPENTHERM_TEMP = "opentherm_temp_sensor"
-CONF_OPENTHERM_RETURN = "opentherm_return_sensor"
-CONF_OPENTHERM_MODULATION = "opentherm_modulation_sensor"
+CONF_HEAT_SOURCE_SWITCH = "heat_source_switch"
+CONF_HEAT_MODE_ENTITY = "heat_mode_entity"
+CONF_HEATING_MODE_VALUE = "heating_mode_value"
+CONF_IDLE_MODE_VALUE = "idle_mode_value"
 CONF_VALVE_OPEN_TIME = "valve_open_time"
-CONF_CONTROL_MODE = "control_mode"
-CONF_MAIN_CIRCUITS = "main_circuits"
+CONF_MIN_RUN_TIME = "min_run_time"
+CONF_MIN_OFF_TIME = "min_off_time"
 CONF_ZONES = "zones"
 
 # Zone configuration keys
@@ -39,16 +34,13 @@ DEFAULT_VALVE_OPEN_TIME = 120  # seconds
 DEFAULT_HYSTERESIS = 0.5  # °C
 DEFAULT_TARGET_TEMP = 21.0  # °C
 DEFAULT_MAX_FLOOR_TEMP = 30.0  # °C
-DEFAULT_PWM_PERIOD = 1800  # 30 minutes
+DEFAULT_MIN_RUN_TIME = 15  # minutes
+DEFAULT_MIN_OFF_TIME = 10  # minutes
 
 # Update interval
 UPDATE_INTERVAL = 30  # seconds
 
 # Attributes
 ATTR_ZONE_NAME = "zone_name"
-ATTR_MAIN_CIRCUIT = "main_circuit"
 ATTR_ACTIVE_VALVES = "active_valves"
 ATTR_FLOOR_TEMPS = "floor_temperatures"
-ATTR_OPENTHERM_TEMP = "supply_temperature"
-ATTR_OPENTHERM_RETURN = "return_temperature"
-ATTR_OPENTHERM_MODULATION = "modulation"
