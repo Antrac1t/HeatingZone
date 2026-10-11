@@ -244,6 +244,16 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
         buffer_top_temp = self._get_buffer_top_temperature()
         return buffer_top_temp is not None and buffer_top_temp >= min_buffer_top_temp
 
+    def _uses_buffer_tank(self) -> bool:
+        """Return whether this installation is configured to use a buffer tank."""
+        return any(
+            (
+                self._entry.data.get("buffer_top_temp_sensor"),
+                self._entry.data.get("buffer_bottom_temp_sensor"),
+                float(self._entry.data.get("min_buffer_top_temp", 0.0)) > 0,
+            )
+        )
+
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set new target temperature."""
         if temp := kwargs.get(ATTR_TEMPERATURE):
@@ -287,8 +297,8 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
         await self._async_control_zone()
         await self._async_ensure_zone_circulation()
         await self._check_and_control_heat_source()
-        if not self._is_heating and self._is_direct_heat_source_control_enabled():
-            await self._async_close_deferred_valves()
+        if not self._is_heating:
+            await self._async_sync_inactive_zone_outputs()
 
     async def _async_control_zone(self) -> None:
         """Control heating for this zone."""
@@ -432,6 +442,7 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
         heat_source_is_on = bool(heat_source_state and heat_source_state.state == "on")
         should_defer_zone_shutdown = (
             self._is_direct_heat_source_control_enabled()
+            and not self._uses_buffer_tank()
             and heat_source_is_on
             and not any_other_zone_heating
         )
@@ -471,11 +482,16 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
 
         await self._check_and_control_heat_source()
 
-    async def _async_close_deferred_valves(self) -> None:
-        """Close valves that stayed open until the shared heat source stopped."""
+    async def _async_sync_inactive_zone_outputs(self) -> None:
+        """Ensure inactive zones do not leave valves or pumps running."""
         heat_source_switch = self._get_heat_source_switch()
         heat_source_state = self.hass.states.get(heat_source_switch) if heat_source_switch else None
-        if heat_source_state and heat_source_state.state == "on":
+        if (
+            self._is_direct_heat_source_control_enabled()
+            and not self._uses_buffer_tank()
+            and heat_source_state
+            and heat_source_state.state == "on"
+        ):
             return
 
         for valve_config in self._zone_config.get("valves", []):
