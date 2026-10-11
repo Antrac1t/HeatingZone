@@ -11,6 +11,8 @@ from homeassistant.core import callback
 from homeassistant.helpers import selector
 
 from .const import (
+    DEFAULT_MIN_BUFFER_TOP_TEMP,
+    DEFAULT_CONTROL_HEAT_SOURCE,
     DEFAULT_HYSTERESIS,
     DEFAULT_MAX_FLOOR_TEMP,
     DEFAULT_MIN_OFF_TIME,
@@ -62,6 +64,32 @@ class HeatingZoneConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 default=defaults.get("idle_mode_value", ""),
             )
         ] = str
+        schema[
+            vol.Optional(
+                "control_heat_source",
+                default=defaults.get("control_heat_source", DEFAULT_CONTROL_HEAT_SOURCE),
+            )
+        ] = bool
+        schema[vol.Optional("buffer_top_temp_sensor")] = selector.EntitySelector(
+            selector.EntitySelectorConfig(domain="sensor")
+        )
+        schema[vol.Optional("buffer_bottom_temp_sensor")] = selector.EntitySelector(
+            selector.EntitySelectorConfig(domain="sensor")
+        )
+        schema[
+            vol.Optional(
+                "min_buffer_top_temp",
+                default=defaults.get("min_buffer_top_temp", DEFAULT_MIN_BUFFER_TOP_TEMP),
+            )
+        ] = selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=0,
+                max=80,
+                step=0.5,
+                unit_of_measurement="°C",
+                mode=selector.NumberSelectorMode.BOX,
+            )
+        )
         schema[
             vol.Optional(
                 "valve_open_time",
@@ -252,6 +280,12 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
                         description={"suggested_value": defaults.get("room_sensor")}
                     ): selector.EntitySelector(
                         selector.EntitySelectorConfig(domain="sensor")
+                    ),
+                    vol.Optional(
+                        "circulation_pump",
+                        description={"suggested_value": defaults.get("circulation_pump")}
+                    ): selector.EntitySelector(
+                        selector.EntitySelectorConfig(domain="switch")
                     ),
                     vol.Optional(
                         "target_temp",
