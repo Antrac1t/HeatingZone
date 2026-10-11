@@ -12,149 +12,135 @@
           "idle_mode_value": "Idle Mode Value (optional)",
           "valve_open_time": "Valve Opening Time (seconds)",
           "min_run_time": "Minimum Run Time (minutes)",
-          {
-            "config": {
-              "step": {
-                "user": {
-                  "title": "Heating Zone System Setup",
-                  "description": "Configure your heating system with multiple zones",
-                  "data": {
-                    "name": "System Name",
-                    "heat_source_switch": "Heat Source Switch",
-                    "heat_mode_entity": "Heat Mode Entity (optional)",
-                    "heating_mode_value": "Heating Mode Value",
-                    "idle_mode_value": "Idle Mode Value (optional)",
-                    "valve_open_time": "Valve Opening Time (seconds)",
-                    "min_run_time": "Minimum Run Time (minutes)",
-                    "min_off_time": "Minimum Off Time (minutes)"
-                  }
-                }
-              },
-              "error": {
-                "cannot_connect": "Failed to connect",
-                "invalid_auth": "Invalid authentication",
-                "unknown": "Unexpected error"
-              },
-              "abort": {
-                "already_configured": "System is already configured"
-              }
-            },
-            "options": {
-              "step": {
-                "init": {
-                  "title": "Manage Heating Zones",
-                  "description": "Configure your heating zones",
-                  "menu_options": {
-                    "edit_system": "Heat Pump Settings",
-                    "add_zone": "Add New Zone",
-                    "edit_zone": "Edit Existing Zone",
-                    "delete_zone": "Delete Zone",
-                    "finish": "Finish Configuration"
-                  }
-                },
-                "edit_system": {
-                  "title": "Heat Pump Settings",
-                  "description": "Configure the shared heat source, valve timing, and anti-cycling protection",
-                  "data": {
-                    "heat_source_switch": "Heat Source Switch",
-                    "heat_mode_entity": "Heat Mode Entity (optional)",
-                    "heating_mode_value": "Heating Mode Value",
-                    "idle_mode_value": "Idle Mode Value (optional)",
-                    "valve_open_time": "Valve Opening Time (seconds)",
-                    "min_run_time": "Minimum Run Time (minutes)",
-                    "min_off_time": "Minimum Off Time (minutes)"
-                  }
-                },
-                "edit_zone": {
-                  "title": "Select Zone to Edit",
-                  "description": "Choose which zone you want to modify",
-                  "data": {
-                    "zone": "Zone"
-                  }
-                },
-                "delete_zone": {
-                  "title": "Select Zone to Delete",
-                  "description": "This action cannot be undone",
-                  "data": {
-                    "zone": "Zone"
-                  }
-                },
-                "zone_basic": {
-                  "title": "Zone Basic Settings",
-                  "description": "Configure basic zone parameters",
-                  "data": {
-                    "name": "Zone Name",
-                    "room_sensor": "Room Temperature Sensor",
-                    "target_temp": "Default Target Temperature (C)"
-                  },
-                  "data_description": {
-                    "name": "Example: Living Room, Bedroom, Office",
-                    "room_sensor": "Temperature sensor for this zone",
-                    "target_temp": "Initial target temperature (can be changed later)"
-                  }
-                },
-                "zone_control": {
-                  "title": "Zone Control",
-                  "description": "Configure simple ON/OFF control with hysteresis for this zone",
-                  "data": {
-                    "hysteresis": "Hysteresis (C)"
-                  },
-                  "data_description": {
-                    "hysteresis": "Temperature difference before switching the zone on or off"
-                  }
-                },
-                "zone_valves": {
-                  "title": "Manage Valves - {zone_name}",
-                  "description": "Configured valves:\n{valve_list}\n\nEach zone needs at least one valve.",
-                  "menu_options": {
-                    "add_valve": "Add Valve",
-                    "edit_valve": "Edit Valve",
-                    "delete_valve": "Delete Valve",
-                    "done_valves": "Save Zone and Continue"
-                  }
-                },
-                "add_valve": {
-                  "title": "Add Valve to Zone",
-                  "description": "Configure a heating valve for this zone",
-                  "data": {
-                    "valve": "Valve Switch Entity",
-                    "floor_sensor": "Floor Temperature Sensor (optional)",
-                    "max_floor_temp": "Maximum Floor Temperature (C)"
-                  },
-                  "data_description": {
-                    "valve": "Switch entity that controls this heating valve",
-                    "floor_sensor": "Optional floor temperature monitor to prevent overheating",
-                    "max_floor_temp": "If floor sensor is used, the valve closes at this temperature"
-                  }
-                },
-                "edit_valve": {
-                  "title": "Select Valve to Edit",
-                  "description": "Choose which valve you want to modify",
-                  "data": {
-                    "valve_index": "Valve"
-                  }
-                },
-                "edit_valve_details": {
-                  "title": "Edit Valve Settings",
-                  "description": "Modify valve configuration",
-                  "data": {
-                    "valve": "Valve Switch Entity",
-                    "floor_sensor": "Floor Temperature Sensor (optional)",
-                    "max_floor_temp": "Maximum Floor Temperature (C)"
-                  },
-                  "data_description": {
-                    "valve": "Switch entity that controls this heating valve",
-                    "floor_sensor": "Optional floor temperature monitor to prevent overheating",
-                    "max_floor_temp": "If floor sensor is used, the valve closes at this temperature"
-                  }
-                },
-                "delete_valve": {
-                  "title": "Delete Valve",
-                  "description": "Select a valve to remove from this zone",
-                  "data": {
-                    "valve_index": "Valve"
-                  }
-                }
-              }
-            }
-          }
+          "min_off_time": "Minimum Off Time (minutes)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid authentication",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "System is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Manage Heating Zones",
+        "description": "Configure your heating zones",
+        "menu_options": {
+          "edit_system": "Heat Pump Settings",
+          "add_zone": "Add New Zone",
+          "edit_zone": "Edit Existing Zone",
+          "delete_zone": "Delete Zone",
+          "finish": "Finish Configuration"
+        }
+      },
+      "edit_system": {
+        "title": "Heat Pump Settings",
+        "description": "Configure the shared heat source, valve timing, and anti-cycling protection",
+        "data": {
+          "heat_source_switch": "Heat Source Switch",
+          "heat_mode_entity": "Heat Mode Entity (optional)",
+          "heating_mode_value": "Heating Mode Value",
+          "idle_mode_value": "Idle Mode Value (optional)",
+          "valve_open_time": "Valve Opening Time (seconds)",
+          "min_run_time": "Minimum Run Time (minutes)",
+          "min_off_time": "Minimum Off Time (minutes)"
+        }
+      },
+      "edit_zone": {
+        "title": "Select Zone to Edit",
+        "description": "Choose which zone you want to modify",
+        "data": {
+          "zone": "Zone"
+        }
+      },
+      "delete_zone": {
+        "title": "Select Zone to Delete",
+        "description": "This action cannot be undone",
+        "data": {
+          "zone": "Zone"
+        }
+      },
+      "zone_basic": {
+        "title": "Zone Basic Settings",
+        "description": "Configure basic zone parameters",
+        "data": {
+          "name": "Zone Name",
+          "room_sensor": "Room Temperature Sensor",
+          "target_temp": "Default Target Temperature (C)"
+        },
+        "data_description": {
+          "name": "Example: Living Room, Bedroom, Office",
+          "room_sensor": "Temperature sensor for this zone",
+          "target_temp": "Initial target temperature (can be changed later)"
+        }
+      },
+      "zone_control": {
+        "title": "Zone Control",
+        "description": "Configure simple ON/OFF control with hysteresis for this zone",
+        "data": {
+          "hysteresis": "Hysteresis (C)"
+        },
+        "data_description": {
+          "hysteresis": "Temperature difference before switching the zone on or off"
+        }
+      },
+      "zone_valves": {
+        "title": "Manage Valves - {zone_name}",
+        "description": "Configured valves:\n{valve_list}\n\nEach zone needs at least one valve.",
+        "menu_options": {
+          "add_valve": "Add Valve",
+          "edit_valve": "Edit Valve",
+          "delete_valve": "Delete Valve",
+          "done_valves": "Save Zone and Continue"
+        }
+      },
+      "add_valve": {
+        "title": "Add Valve to Zone",
+        "description": "Configure a heating valve for this zone",
+        "data": {
+          "valve": "Valve Switch Entity",
+          "floor_sensor": "Floor Temperature Sensor (optional)",
+          "max_floor_temp": "Maximum Floor Temperature (C)"
+        },
+        "data_description": {
+          "valve": "Switch entity that controls this heating valve",
+          "floor_sensor": "Optional floor temperature monitor to prevent overheating",
+          "max_floor_temp": "If floor sensor is used, the valve closes at this temperature"
+        }
+      },
+      "edit_valve": {
+        "title": "Select Valve to Edit",
+        "description": "Choose which valve you want to modify",
+        "data": {
+          "valve_index": "Valve"
+        }
+      },
+      "edit_valve_details": {
+        "title": "Edit Valve Settings",
+        "description": "Modify valve configuration",
+        "data": {
+          "valve": "Valve Switch Entity",
+          "floor_sensor": "Floor Temperature Sensor (optional)",
+          "max_floor_temp": "Maximum Floor Temperature (C)"
+        },
+        "data_description": {
+          "valve": "Switch entity that controls this heating valve",
+          "floor_sensor": "Optional floor temperature monitor to prevent overheating",
+          "max_floor_temp": "If floor sensor is used, the valve closes at this temperature"
+        }
+      },
+      "delete_valve": {
+        "title": "Delete Valve",
+        "description": "Select a valve to remove from this zone",
+        "data": {
+          "valve_index": "Valve"
+        }
+      }
+    }
+  }
+}
