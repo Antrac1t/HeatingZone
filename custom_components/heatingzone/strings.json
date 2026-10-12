@@ -2,21 +2,21 @@
   "config": {
     "step": {
       "user": {
-        "title": "Heating Zone System Setup",
-        "description": "Configure your heating system with multiple zones",
+        "title": "Nastavení topného systému",
+        "description": "Nakonfigurujte topný systém s více zónami",
         "data": {
-          "name": "System Name",
-          "heat_source_switch": "Heat Source Switch",
-          "heat_mode_entity": "Heat Mode Entity (optional)",
-          "heating_mode_value": "Heating Mode Value",
-          "idle_mode_value": "Idle Mode Value (optional)",
-          "control_heat_source": "Control Heat Source Directly From Room Demand",
-          "buffer_top_temp_sensor": "Upper Buffer Temperature Sensor (optional)",
-          "buffer_bottom_temp_sensor": "Lower Buffer Temperature Sensor (optional)",
-          "min_buffer_top_temp": "Minimum Upper Buffer Temperature For Pumps (0 = disabled)",
-          "valve_open_time": "Valve Opening Time (seconds)",
-          "min_run_time": "Minimum Run Time (minutes)",
-          "min_off_time": "Minimum Off Time (minutes)"
+          "name": "Název systému",
+          "heat_source_switch": "Spínač zdroje tepla",
+          "heat_mode_entity": "Entita režimu TČ (volitelné)",
+          "heating_mode_value": "Hodnota režimu topení",
+          "idle_mode_value": "Hodnota klidového režimu (volitelné)",
+          "control_heat_source": "Řídit TČ přímo podle požadavků místností",
+          "buffer_top_temp_sensor": "Horní teplotní čidlo AN (volitelné)",
+          "buffer_bottom_temp_sensor": "Dolní teplotní čidlo AN (volitelné)",
+          "min_buffer_top_temp": "Minimální horní teplota AN pro sepnutí oběhovek (0 = vypnuto)",
+          "valve_open_time": "Čas otevření ventilu (sekundy)",
+          "min_run_time": "Minimální doba běhu (minuty)",
+          "min_off_time": "Minimální doba vypnutí (minuty)"
         }
       }
     },
@@ -32,123 +32,123 @@
   "options": {
     "step": {
       "init": {
-        "title": "Manage Heating Zones",
-        "description": "Configure your heating zones",
+        "title": "Správa topných zón",
+        "description": "Nakonfigurujte topné zóny",
         "menu_options": {
-          "edit_system": "Heat Pump Settings",
-          "add_zone": "Add New Zone",
-          "edit_zone": "Edit Existing Zone",
-          "delete_zone": "Delete Zone",
-          "finish": "Finish Configuration"
+          "edit_system": "Nastavení TČ",
+          "add_zone": "Přidat novou zónu",
+          "edit_zone": "Upravit existující zónu",
+          "delete_zone": "Smazat zónu",
+          "finish": "Dokončit konfiguraci"
         }
       },
       "edit_system": {
-        "title": "Heat Pump Settings",
-        "description": "Configure the shared heat source, valve timing, and anti-cycling protection",
+        "title": "Nastavení TČ",
+        "description": "Nastavte společný zdroj tepla, časy ventilů a ochranu proti taktování",
         "data": {
-          "heat_source_switch": "Heat Source Switch",
-          "heat_mode_entity": "Heat Mode Entity (optional)",
-          "heating_mode_value": "Heating Mode Value",
-          "idle_mode_value": "Idle Mode Value (optional)",
-          "control_heat_source": "Control Heat Source Directly From Room Demand",
-          "buffer_top_temp_sensor": "Upper Buffer Temperature Sensor (optional)",
-          "buffer_bottom_temp_sensor": "Lower Buffer Temperature Sensor (optional)",
-          "min_buffer_top_temp": "Minimum Upper Buffer Temperature For Pumps (0 = disabled)",
-          "valve_open_time": "Valve Opening Time (seconds)",
-          "min_run_time": "Minimum Run Time (minutes)",
-          "min_off_time": "Minimum Off Time (minutes)"
+          "heat_source_switch": "Spínač zdroje tepla",
+          "heat_mode_entity": "Entita režimu TČ (volitelné)",
+          "heating_mode_value": "Hodnota režimu topení",
+          "idle_mode_value": "Hodnota klidového režimu (volitelné)",
+          "control_heat_source": "Řídit TČ přímo podle požadavků místností",
+          "buffer_top_temp_sensor": "Horní teplotní čidlo AN (volitelné)",
+          "buffer_bottom_temp_sensor": "Dolní teplotní čidlo AN (volitelné)",
+          "min_buffer_top_temp": "Minimální horní teplota AN pro sepnutí oběhovek (0 = vypnuto)",
+          "valve_open_time": "Čas otevření ventilu (sekundy)",
+          "min_run_time": "Minimální doba běhu (minuty)",
+          "min_off_time": "Minimální doba vypnutí (minuty)"
         }
       },
       "edit_zone": {
-        "title": "Select Zone to Edit",
-        "description": "Choose which zone you want to modify",
+        "title": "Vyberte zónu k úpravě",
+        "description": "Vyberte, kterou zónu chcete upravit",
         "data": {
-          "zone": "Zone"
+          "zone": "Zóna"
         }
       },
       "delete_zone": {
-        "title": "Select Zone to Delete",
-        "description": "This action cannot be undone",
+        "title": "Vyberte zónu ke smazání",
+        "description": "Tuto akci nelze vrátit zpět",
         "data": {
-          "zone": "Zone"
+          "zone": "Zóna"
         }
       },
       "zone_basic": {
-        "title": "Zone Basic Settings",
-        "description": "Configure basic zone parameters",
+        "title": "Základní nastavení zóny",
+        "description": "Nakonfigurujte základní parametry zóny",
         "data": {
-          "name": "Zone Name",
-          "room_sensor": "Room Temperature Sensor",
-          "circulation_pump": "Circulation Pump For This Zone (optional)",
-          "target_temp": "Default Target Temperature (C)"
+          "name": "Název zóny",
+          "room_sensor": "Teplotní čidlo místnosti",
+          "circulation_pump": "Oběhové čerpadlo pro tuto zónu (volitelné)",
+          "target_temp": "Výchozí cílová teplota (C)"
         },
         "data_description": {
-          "name": "Example: Living Room, Bedroom, Office",
-          "room_sensor": "Temperature sensor for this zone",
-          "circulation_pump": "Assign the shared circulation pump that serves this room group",
-          "target_temp": "Initial target temperature (can be changed later)"
+          "name": "Příklad: Obývák, Ložnice, Kancelář",
+          "room_sensor": "Teplotní senzor pro tuto zónu",
+          "circulation_pump": "Přiřaďte společnou oběhovku, která obsluhuje tuto skupinu místností",
+          "target_temp": "Počáteční cílová teplota (později lze změnit)"
         }
       },
       "zone_control": {
-        "title": "Zone Control",
-        "description": "Configure simple ON/OFF control with hysteresis for this zone",
+        "title": "Řízení zóny",
+        "description": "Nastavte jednoduché ON/OFF řízení s hysterezí pro tuto zónu",
         "data": {
-          "hysteresis": "Hysteresis (C)"
+          "hysteresis": "Hystereze (C)"
         },
         "data_description": {
-          "hysteresis": "Temperature difference before switching the zone on or off"
+          "hysteresis": "Teplotní rozdíl před zapnutím nebo vypnutím zóny"
         }
       },
       "zone_valves": {
-        "title": "Manage Valves - {zone_name}",
-        "description": "Configured valves:\n{valve_list}\n\nEach zone needs at least one valve.",
+        "title": "Správa ventilů - {zone_name}",
+        "description": "Nakonfigurované ventily:\n{valve_list}\n\nKaždá zóna potřebuje alespoň jeden ventil.",
         "menu_options": {
-          "add_valve": "Add Valve",
-          "edit_valve": "Edit Valve",
-          "delete_valve": "Delete Valve",
-          "done_valves": "Save Zone and Continue"
+          "add_valve": "Přidat ventil",
+          "edit_valve": "Upravit ventil",
+          "delete_valve": "Smazat ventil",
+          "done_valves": "Uložit zónu a pokračovat"
         }
       },
       "add_valve": {
-        "title": "Add Valve to Zone",
-        "description": "Configure a heating valve for this zone",
+        "title": "Přidat ventil do zóny",
+        "description": "Nakonfigurujte ventil pro tuto zónu",
         "data": {
-          "valve": "Valve Switch Entity",
-          "floor_sensor": "Floor Temperature Sensor (optional)",
-          "max_floor_temp": "Maximum Floor Temperature (C)"
+          "valve": "Entita spínače ventilu",
+          "floor_sensor": "Teplotní čidlo podlahy (volitelné)",
+          "max_floor_temp": "Maximální teplota podlahy (C)"
         },
         "data_description": {
-          "valve": "Switch entity that controls this heating valve",
-          "floor_sensor": "Optional floor temperature monitor to prevent overheating",
-          "max_floor_temp": "If floor sensor is used, the valve closes at this temperature"
+          "valve": "Switch entita, která ovládá tento ventil",
+          "floor_sensor": "Volitelné sledování teploty podlahy pro zabránění přetápění",
+          "max_floor_temp": "Pokud je použit senzor podlahy, ventil se zavře při dosažení této teploty"
         }
       },
       "edit_valve": {
-        "title": "Select Valve to Edit",
-        "description": "Choose which valve you want to modify",
+        "title": "Vyberte ventil k úpravě",
+        "description": "Vyberte, který ventil chcete upravit",
         "data": {
-          "valve_index": "Valve"
+          "valve_index": "Ventil"
         }
       },
       "edit_valve_details": {
-        "title": "Edit Valve Settings",
-        "description": "Modify valve configuration",
+        "title": "Upravit nastavení ventilu",
+        "description": "Změňte konfiguraci ventilu",
         "data": {
-          "valve": "Valve Switch Entity",
-          "floor_sensor": "Floor Temperature Sensor (optional)",
-          "max_floor_temp": "Maximum Floor Temperature (C)"
+          "valve": "Entita spínače ventilu",
+          "floor_sensor": "Teplotní čidlo podlahy (volitelné)",
+          "max_floor_temp": "Maximální teplota podlahy (C)"
         },
         "data_description": {
-          "valve": "Switch entity that controls this heating valve",
-          "floor_sensor": "Optional floor temperature monitor to prevent overheating",
-          "max_floor_temp": "If floor sensor is used, the valve closes at this temperature"
+          "valve": "Switch entita, která ovládá tento ventil",
+          "floor_sensor": "Volitelné sledování teploty podlahy pro zabránění přetápění",
+          "max_floor_temp": "Pokud je použit senzor podlahy, ventil se zavře při dosažení této teploty"
         }
       },
       "delete_valve": {
-        "title": "Delete Valve",
-        "description": "Select a valve to remove from this zone",
+        "title": "Smazat ventil",
+        "description": "Vyberte ventil pro odstranění z této zóny",
         "data": {
-          "valve_index": "Valve"
+          "valve_index": "Ventil"
         }
       }
     }
