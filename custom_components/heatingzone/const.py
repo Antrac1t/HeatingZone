@@ -1,10 +1,10 @@
 """Constants for the Heating Zone integration."""
 
 DOMAIN = "heating_zone"
-NAME = "Heating Zone"
+NAME = "Topne zony"
 VERSION = "1.0.0"
 
-DEFAULT_NAME = "Heating Zone System"
+DEFAULT_NAME = "System topnych zon"
 
 # Configuration keys
 CONF_HEAT_SOURCE_SWITCH = "heat_source_switch"
