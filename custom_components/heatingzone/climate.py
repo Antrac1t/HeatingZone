@@ -16,6 +16,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfTemperature, ATTR_TEMPERATURE
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.event import async_track_time_interval
 
@@ -54,7 +55,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
+class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
     """Representation of a Thermozona heating zone."""
 
     _attr_has_entity_name = True
@@ -92,6 +93,21 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
     async def async_added_to_hass(self) -> None:
         """Run when entity about to be added to hass."""
         await super().async_added_to_hass()
+
+        last_state = await self.async_get_last_state()
+        if last_state:
+            if last_state.state in (HVACMode.HEAT, HVACMode.OFF):
+                self._hvac_mode = HVACMode(last_state.state)
+
+            restored_target = last_state.attributes.get(ATTR_TEMPERATURE)
+            if restored_target is None:
+                restored_target = last_state.attributes.get("target_temp")
+
+            if restored_target is not None:
+                try:
+                    self._target_temperature = float(restored_target)
+                except (TypeError, ValueError):
+                    pass
         
         # Start automatic control loop
         self._control_task = async_track_time_interval(
@@ -99,6 +115,11 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity):
             self._async_control_loop,
             CONTROL_INTERVAL
         )
+
+        await self._async_control_zone()
+        await self._async_ensure_zone_circulation()
+        await self._check_and_control_heat_source()
+        self.async_write_ha_state()
         
         _LOGGER.info("Zone %s: Control loop started (every %s)", 
                     self._attr_name, CONTROL_INTERVAL)
