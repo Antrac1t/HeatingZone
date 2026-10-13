@@ -47,11 +47,68 @@
         "title": "Správa topných zón",
         "description": "Nakonfigurujte topné zóny",
         "menu_options": {
-          "edit_system": "Nastavení TČ",
+          "edit_heat_source": "Zdroj tepla a režimy",
+          "edit_tariff": "Nízký tarif",
+          "edit_tuv": "Teplá užitková voda",
+          "edit_buffer": "Akumulační nádrž",
+          "edit_timing": "Časování a ochrany",
           "add_zone": "Přidat novou zónu",
           "edit_zone": "Upravit existující zónu",
           "delete_zone": "Smazat zónu",
           "finish": "Dokončit konfiguraci"
+        }
+      },
+      "edit_heat_source": {
+        "title": "Zdroj tepla a režimy",
+        "description": "Nastavte spínač TČ, volitelnou entitu režimu a přímé řízení zdroje tepla podle požadavků místností.",
+        "data": {
+          "heat_source_switch": "Spínač zdroje tepla",
+          "heat_mode_entity": "Entita režimu TČ (volitelné)",
+          "heating_mode_value": "Hodnota režimu topení",
+          "idle_mode_value": "Hodnota klidového režimu (volitelné)",
+          "control_heat_source": "Řídit TČ přímo podle požadavků místností"
+        }
+      },
+      "edit_tariff": {
+        "title": "Nízký tarif",
+        "description": "Nastavte entity pro detekci nízkého tarifu a volitelně i údaj o zbývajícím čase do přepnutí.",
+        "data": {
+          "nt_binary_sensor": "Binární senzor nízkého tarifu (volitelné)",
+          "nt_remaining_time_sensor": "Senzor času do změny tarifu (volitelné)"
+        }
+      },
+      "edit_tuv": {
+        "title": "Teplá užitková voda",
+        "description": "Nastavte čidla TUV, objem zásobníku a teplotní prahy pro základní prioritu ohřevu.",
+        "data": {
+          "tuv_setpoint_entity": "Entita cílové teploty TUV (volitelné)",
+          "tuv_top_temp_sensor": "Horní teplotní čidlo TUV (volitelné)",
+          "tuv_bottom_temp_sensor": "Dolní teplotní čidlo TUV (volitelné)",
+          "tuv_volume_liters": "Objem TUV (litry)",
+          "tuv_target_temp": "Cílová teplota TUV",
+          "tuv_min_ready_temp": "Teplota TUV připravená k použití",
+          "tuv_emergency_min_temp": "Nouzové minimum TUV"
+        }
+      },
+      "edit_buffer": {
+        "title": "Akumulační nádrž",
+        "description": "Nastavte čidla AN, objem a teploty pro odhad využitelné energie a povolení oběhovek.",
+        "data": {
+          "buffer_top_temp_sensor": "Horní teplotní čidlo AN (volitelné)",
+          "buffer_mid_temp_sensor": "Střední teplotní čidlo AN (volitelné)",
+          "buffer_bottom_temp_sensor": "Dolní teplotní čidlo AN (volitelné)",
+          "buffer_volume_liters": "Objem AN (litry)",
+          "buffer_min_usable_temp": "Minimální využitelná teplota AN",
+          "min_buffer_top_temp": "Minimální horní teplota AN pro sepnutí oběhovek (0 = vypnuto)"
+        }
+      },
+      "edit_timing": {
+        "title": "Časování a ochrany",
+        "description": "Nastavte doby otevření ventilů a ochranu proti taktování společného zdroje tepla.",
+        "data": {
+          "valve_open_time": "Čas otevření ventilu (sekundy)",
+          "min_run_time": "Minimální doba běhu (minuty)",
+          "min_off_time": "Minimální doba vypnutí (minuty)"
         }
       },
       "edit_system": {
