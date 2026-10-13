@@ -11,6 +11,8 @@ from homeassistant.core import callback
 from homeassistant.helpers import selector
 
 from .const import (
+    DEFAULT_BUFFER_MIN_USABLE_TEMP,
+    DEFAULT_BUFFER_VOLUME_LITERS,
     DEFAULT_MIN_BUFFER_TOP_TEMP,
     DEFAULT_CONTROL_HEAT_SOURCE,
     DEFAULT_HYSTERESIS,
@@ -19,6 +21,10 @@ from .const import (
     DEFAULT_MIN_RUN_TIME,
     DEFAULT_NAME,
     DEFAULT_TARGET_TEMP,
+    DEFAULT_TUV_EMERGENCY_MIN_TEMP,
+    DEFAULT_TUV_MIN_READY_TEMP,
+    DEFAULT_TUV_TARGET_TEMP,
+    DEFAULT_TUV_VOLUME_LITERS,
     DEFAULT_VALVE_OPEN_TIME,
     DOMAIN,
 )
@@ -70,11 +76,113 @@ class HeatingZoneConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 default=defaults.get("control_heat_source", DEFAULT_CONTROL_HEAT_SOURCE),
             )
         ] = bool
+        schema[vol.Optional("nt_binary_sensor")] = selector.EntitySelector(
+            selector.EntitySelectorConfig(domain="binary_sensor")
+        )
+        schema[vol.Optional("nt_remaining_time_sensor")] = selector.EntitySelector(
+            selector.EntitySelectorConfig(domain="sensor")
+        )
+        schema[vol.Optional("tuv_setpoint_entity")] = selector.EntitySelector(
+            selector.EntitySelectorConfig(domain="number")
+        )
+        schema[vol.Optional("tuv_top_temp_sensor")] = selector.EntitySelector(
+            selector.EntitySelectorConfig(domain="sensor")
+        )
+        schema[vol.Optional("tuv_bottom_temp_sensor")] = selector.EntitySelector(
+            selector.EntitySelectorConfig(domain="sensor")
+        )
+        schema[
+            vol.Optional(
+                "tuv_volume_liters",
+                default=defaults.get("tuv_volume_liters", DEFAULT_TUV_VOLUME_LITERS),
+            )
+        ] = selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=50,
+                max=500,
+                step=10,
+                unit_of_measurement="l",
+                mode=selector.NumberSelectorMode.BOX,
+            )
+        )
+        schema[
+            vol.Optional(
+                "tuv_target_temp",
+                default=defaults.get("tuv_target_temp", DEFAULT_TUV_TARGET_TEMP),
+            )
+        ] = selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=30,
+                max=65,
+                step=0.5,
+                unit_of_measurement="°C",
+                mode=selector.NumberSelectorMode.BOX,
+            )
+        )
+        schema[
+            vol.Optional(
+                "tuv_min_ready_temp",
+                default=defaults.get("tuv_min_ready_temp", DEFAULT_TUV_MIN_READY_TEMP),
+            )
+        ] = selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=25,
+                max=65,
+                step=0.5,
+                unit_of_measurement="°C",
+                mode=selector.NumberSelectorMode.BOX,
+            )
+        )
+        schema[
+            vol.Optional(
+                "tuv_emergency_min_temp",
+                default=defaults.get("tuv_emergency_min_temp", DEFAULT_TUV_EMERGENCY_MIN_TEMP),
+            )
+        ] = selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=20,
+                max=60,
+                step=0.5,
+                unit_of_measurement="°C",
+                mode=selector.NumberSelectorMode.BOX,
+            )
+        )
         schema[vol.Optional("buffer_top_temp_sensor")] = selector.EntitySelector(
+            selector.EntitySelectorConfig(domain="sensor")
+        )
+        schema[vol.Optional("buffer_mid_temp_sensor")] = selector.EntitySelector(
             selector.EntitySelectorConfig(domain="sensor")
         )
         schema[vol.Optional("buffer_bottom_temp_sensor")] = selector.EntitySelector(
             selector.EntitySelectorConfig(domain="sensor")
+        )
+        schema[
+            vol.Optional(
+                "buffer_volume_liters",
+                default=defaults.get("buffer_volume_liters", DEFAULT_BUFFER_VOLUME_LITERS),
+            )
+        ] = selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=100,
+                max=2000,
+                step=10,
+                unit_of_measurement="l",
+                mode=selector.NumberSelectorMode.BOX,
+            )
+        )
+        schema[
+            vol.Optional(
+                "buffer_min_usable_temp",
+                default=defaults.get("buffer_min_usable_temp", DEFAULT_BUFFER_MIN_USABLE_TEMP),
+            )
+        ] = selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=20,
+                max=60,
+                step=0.5,
+                unit_of_measurement="°C",
+                mode=selector.NumberSelectorMode.BOX,
+            )
         )
         schema[
             vol.Optional(
