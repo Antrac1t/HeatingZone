@@ -11,10 +11,12 @@
           "heating_mode_value": "Hodnota režimu topení",
             "tuv_mode_value": "Hodnota režimu ohřevu TUV (volitelné)",
           "idle_mode_value": "Hodnota klidového režimu (volitelné)",
-          "control_heat_source": "Řídit TČ přímo podle požadavků místností",
+          "control_heat_source": "Aktivně řídit TČ podle požadavků systému (TUV i topení)",
           "nt_binary_sensor": "Binární senzor nízkého tarifu (volitelné)",
           "nt_remaining_time_sensor": "Senzor času do změny tarifu (volitelné)",
+          "tuv_demand_binary_sensor": "Binární senzor požadavku na TUV z TČ (volitelné)",
           "tuv_setpoint_entity": "Entita cílové teploty TUV (volitelné)",
+          "tuv_temp_diff_entity": "Entita hystereze TUV z TČ (volitelné)",
           "tuv_top_temp_sensor": "Horní teplotní čidlo TUV (volitelné)",
           "tuv_bottom_temp_sensor": "Dolní teplotní čidlo TUV (volitelné)",
           "tuv_volume_liters": "Objem TUV (litry)",
@@ -61,14 +63,14 @@
       },
       "edit_heat_source": {
         "title": "Zdroj tepla a režimy",
-        "description": "Nastavte spínač TČ, volitelnou entitu režimu a přímé řízení zdroje tepla podle požadavků místností.",
+        "description": "Nastavte spínač TČ, volitelnou entitu režimu a aktivní řízení zdroje tepla podle požadavků systému na TUV i topení.",
         "data": {
           "heat_source_switch": "Spínač zdroje tepla",
           "heat_mode_entity": "Entita režimu TČ (volitelné)",
           "heating_mode_value": "Hodnota režimu topení",
           "tuv_mode_value": "Hodnota režimu ohřevu TUV (volitelné)",
           "idle_mode_value": "Hodnota klidového režimu (volitelné)",
-          "control_heat_source": "Řídit TČ přímo podle požadavků místností"
+          "control_heat_source": "Aktivně řídit TČ podle požadavků systému (TUV i topení)"
         }
       },
       "edit_tariff": {
@@ -83,7 +85,9 @@
         "title": "Teplá užitková voda",
         "description": "Nastavte čidla TUV, objem zásobníku a teplotní prahy pro základní prioritu ohřevu.",
         "data": {
+          "tuv_demand_binary_sensor": "Binární senzor požadavku na TUV z TČ (volitelné)",
           "tuv_setpoint_entity": "Entita cílové teploty TUV (volitelné)",
+          "tuv_temp_diff_entity": "Entita hystereze TUV z TČ (volitelné)",
           "tuv_top_temp_sensor": "Horní teplotní čidlo TUV (volitelné)",
           "tuv_bottom_temp_sensor": "Dolní teplotní čidlo TUV (volitelné)",
           "tuv_volume_liters": "Objem TUV (litry)",
@@ -122,10 +126,12 @@
           "heating_mode_value": "Hodnota režimu topení",
           "tuv_mode_value": "Hodnota režimu ohřevu TUV (volitelné)",
           "idle_mode_value": "Hodnota klidového režimu (volitelné)",
-          "control_heat_source": "Řídit TČ přímo podle požadavků místností",
+          "control_heat_source": "Aktivně řídit TČ podle požadavků systému (TUV i topení)",
           "nt_binary_sensor": "Binární senzor nízkého tarifu (volitelné)",
           "nt_remaining_time_sensor": "Senzor času do změny tarifu (volitelné)",
+          "tuv_demand_binary_sensor": "Binární senzor požadavku na TUV z TČ (volitelné)",
           "tuv_setpoint_entity": "Entita cílové teploty TUV (volitelné)",
+          "tuv_temp_diff_entity": "Entita hystereze TUV z TČ (volitelné)",
           "tuv_top_temp_sensor": "Horní teplotní čidlo TUV (volitelné)",
           "tuv_bottom_temp_sensor": "Dolní teplotní čidlo TUV (volitelné)",
           "tuv_volume_liters": "Objem TUV (litry)",
