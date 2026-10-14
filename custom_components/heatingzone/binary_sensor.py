@@ -36,9 +36,24 @@ BINARY_SENSORS: tuple[HeatingZoneBinarySensorDescription, ...] = (
         value_key="tuv_emergency",
     ),
     HeatingZoneBinarySensorDescription(
+        key="tuv_demand",
+        name="TUV pozadavek na ohrev",
+        value_key="tuv_demand",
+    ),
+    HeatingZoneBinarySensorDescription(
+        key="tuv_should_heat",
+        name="TUV v planu k ohrati",
+        value_key="tuv_should_heat",
+    ),
+    HeatingZoneBinarySensorDescription(
         key="buffer_ready_for_heating",
         name="AN pripravljena pro topeni",
         value_key="buffer_ready_for_heating",
+    ),
+    HeatingZoneBinarySensorDescription(
+        key="heating_demand_active",
+        name="Topeni pozadavek",
+        value_key="heating_demand_active",
     ),
 )
 
@@ -65,6 +80,7 @@ class HeatingZoneSystemBinarySensor(CoordinatorEntity, BinarySensorEntity):
         """Initialize binary sensor."""
         super().__init__(coordinator)
         self.entity_description = description
+        self._entry = entry
         self._attr_unique_id = f"{DOMAIN}_{entry.entry_id}_{description.key}"
         self._attr_name = description.name
 
@@ -72,3 +88,14 @@ class HeatingZoneSystemBinarySensor(CoordinatorEntity, BinarySensorEntity):
     def is_on(self) -> bool:
         """Return binary state from coordinator data."""
         return bool(self.coordinator.data.get(self.entity_description.value_key))
+
+    @property
+    def extra_state_attributes(self) -> dict[str, object]:
+        """Return extra demand context for system booleans."""
+        return {
+            "system_name": self._entry.title,
+            "heating_requesting_zones": self.coordinator.data.get("heating_requesting_zones", []),
+            "heating_requesting_zone_count": self.coordinator.data.get("heating_requesting_zone_count", 0),
+            "system_demand_state": self.coordinator.data.get("system_demand_state"),
+            "system_recommended_action": self.coordinator.data.get("system_recommended_action"),
+        }
