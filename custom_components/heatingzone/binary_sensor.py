@@ -12,7 +12,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN
 
 
-@dataclass(frozen=True, kw_only=True)
+@dataclass(kw_only=True)
 class HeatingZoneBinarySensorDescription(BinarySensorEntityDescription):
     """Describe a Heating Zone system binary sensor."""
 
