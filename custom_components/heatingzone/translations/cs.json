@@ -9,6 +9,7 @@
           "heat_source_switch": "Spínač zdroje tepla",
           "heat_mode_entity": "Entita režimu TČ (volitelné)",
           "heating_mode_value": "Hodnota režimu topení",
+            "tuv_mode_value": "Hodnota režimu ohřevu TUV (volitelné)",
           "idle_mode_value": "Hodnota klidového režimu (volitelné)",
           "control_heat_source": "Řídit TČ přímo podle požadavků místností",
           "nt_binary_sensor": "Binární senzor nízkého tarifu (volitelné)",
@@ -65,6 +66,7 @@
           "heat_source_switch": "Spínač zdroje tepla",
           "heat_mode_entity": "Entita režimu TČ (volitelné)",
           "heating_mode_value": "Hodnota režimu topení",
+          "tuv_mode_value": "Hodnota režimu ohřevu TUV (volitelné)",
           "idle_mode_value": "Hodnota klidového režimu (volitelné)",
           "control_heat_source": "Řídit TČ přímo podle požadavků místností"
         }
@@ -118,6 +120,7 @@
           "heat_source_switch": "Spínač zdroje tepla",
           "heat_mode_entity": "Entita režimu TČ (volitelné)",
           "heating_mode_value": "Hodnota režimu topení",
+          "tuv_mode_value": "Hodnota režimu ohřevu TUV (volitelné)",
           "idle_mode_value": "Hodnota klidového režimu (volitelné)",
           "control_heat_source": "Řídit TČ přímo podle požadavků místností",
           "nt_binary_sensor": "Binární senzor nízkého tarifu (volitelné)",
