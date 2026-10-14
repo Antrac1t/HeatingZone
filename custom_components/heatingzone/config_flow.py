@@ -21,9 +21,12 @@ from .const import (
     DEFAULT_MIN_RUN_TIME,
     DEFAULT_NAME,
     DEFAULT_TARGET_TEMP,
+    DEFAULT_TUV_DEMAND_BINARY_SENSOR,
     DEFAULT_TUV_EMERGENCY_MIN_TEMP,
     DEFAULT_TUV_MIN_READY_TEMP,
     DEFAULT_TUV_MODE_VALUE,
+    DEFAULT_TUV_SETPOINT_ENTITY,
+    DEFAULT_TUV_TEMP_DIFF_ENTITY,
     DEFAULT_TUV_TARGET_TEMP,
     DEFAULT_TUV_VOLUME_LITERS,
     DEFAULT_VALVE_OPEN_TIME,
@@ -97,7 +100,28 @@ class HeatingZoneConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema[_optional_entity_key(defaults, "nt_remaining_time_sensor")] = selector.EntitySelector(
             selector.EntitySelectorConfig(domain="sensor")
         )
-        schema[_optional_entity_key(defaults, "tuv_setpoint_entity")] = selector.EntitySelector(
+        schema[
+            _optional_entity_key(
+                {**defaults, "tuv_demand_binary_sensor": defaults.get("tuv_demand_binary_sensor", DEFAULT_TUV_DEMAND_BINARY_SENSOR)},
+                "tuv_demand_binary_sensor",
+            )
+        ] = selector.EntitySelector(
+            selector.EntitySelectorConfig(domain="binary_sensor")
+        )
+        schema[
+            _optional_entity_key(
+                {**defaults, "tuv_setpoint_entity": defaults.get("tuv_setpoint_entity", DEFAULT_TUV_SETPOINT_ENTITY)},
+                "tuv_setpoint_entity",
+            )
+        ] = selector.EntitySelector(
+            selector.EntitySelectorConfig(domain="number")
+        )
+        schema[
+            _optional_entity_key(
+                {**defaults, "tuv_temp_diff_entity": defaults.get("tuv_temp_diff_entity", DEFAULT_TUV_TEMP_DIFF_ENTITY)},
+                "tuv_temp_diff_entity",
+            )
+        ] = selector.EntitySelector(
             selector.EntitySelectorConfig(domain="number")
         )
         schema[_optional_entity_key(defaults, "tuv_top_temp_sensor")] = selector.EntitySelector(
@@ -332,7 +356,22 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
         defaults = dict(self.config_entry.data)
         return vol.Schema(
             {
-                _optional_entity_key(defaults, "tuv_setpoint_entity"): selector.EntitySelector(
+                _optional_entity_key(
+                    {**defaults, "tuv_demand_binary_sensor": defaults.get("tuv_demand_binary_sensor", DEFAULT_TUV_DEMAND_BINARY_SENSOR)},
+                    "tuv_demand_binary_sensor",
+                ): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="binary_sensor")
+                ),
+                _optional_entity_key(
+                    {**defaults, "tuv_setpoint_entity": defaults.get("tuv_setpoint_entity", DEFAULT_TUV_SETPOINT_ENTITY)},
+                    "tuv_setpoint_entity",
+                ): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="number")
+                ),
+                _optional_entity_key(
+                    {**defaults, "tuv_temp_diff_entity": defaults.get("tuv_temp_diff_entity", DEFAULT_TUV_TEMP_DIFF_ENTITY)},
+                    "tuv_temp_diff_entity",
+                ): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="number")
                 ),
                 _optional_entity_key(defaults, "tuv_top_temp_sensor"): selector.EntitySelector(
