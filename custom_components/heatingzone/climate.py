@@ -208,10 +208,15 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
         attrs["control_heat_source"] = self._is_direct_heat_source_control_enabled()
         attrs["nt_active"] = self.coordinator.data.get("nt_active") if self.coordinator.data else None
         attrs["nt_remaining_time"] = self.coordinator.data.get("nt_remaining_time") if self.coordinator.data else None
+        attrs["tuv_demand_binary_sensor"] = self.coordinator.data.get("tuv_demand_binary_sensor") if self.coordinator.data else self._entry.data.get("tuv_demand_binary_sensor")
+        attrs["tuv_setpoint_entity"] = self.coordinator.data.get("tuv_setpoint_entity") if self.coordinator.data else self._entry.data.get("tuv_setpoint_entity")
+        attrs["tuv_temp_diff_entity"] = self.coordinator.data.get("tuv_temp_diff_entity") if self.coordinator.data else self._entry.data.get("tuv_temp_diff_entity")
         attrs["tuv_top_temp_sensor"] = self._entry.data.get("tuv_top_temp_sensor")
         attrs["tuv_bottom_temp_sensor"] = self._entry.data.get("tuv_bottom_temp_sensor")
         attrs["tuv_target_temp"] = self.coordinator.data.get("tuv_target_temp") if self.coordinator.data else None
         attrs["tuv_min_ready_temp"] = self.coordinator.data.get("tuv_min_ready_temp") if self.coordinator.data else None
+        attrs["tuv_temp_diff"] = self.coordinator.data.get("tuv_temp_diff") if self.coordinator.data else None
+        attrs["tuv_restart_temp"] = self.coordinator.data.get("tuv_restart_temp") if self.coordinator.data else None
         attrs["tuv_emergency_min_temp"] = self.coordinator.data.get("tuv_emergency_min_temp") if self.coordinator.data else None
         attrs["tuv_ready"] = self.coordinator.data.get("tuv_ready") if self.coordinator.data else None
         attrs["tuv_emergency"] = self.coordinator.data.get("tuv_emergency") if self.coordinator.data else None
