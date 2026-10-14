@@ -81,6 +81,21 @@ SENSORS: tuple[HeatingZoneSensorDescription, ...] = (
         name="NT zbyvajici cas",
         value_key="nt_remaining_time",
     ),
+    HeatingZoneSensorDescription(
+        key="heating_requesting_zone_count",
+        name="Pocet zon s pozadavkem",
+        value_key="heating_requesting_zone_count",
+    ),
+    HeatingZoneSensorDescription(
+        key="system_demand_state",
+        name="Systemovy pozadavek",
+        value_key="system_demand_state",
+    ),
+    HeatingZoneSensorDescription(
+        key="system_recommended_action",
+        name="Doporucena akce systemu",
+        value_key="system_recommended_action",
+    ),
 )
 
 
@@ -125,6 +140,7 @@ class HeatingZoneSystemSensor(CoordinatorEntity, SensorEntity):
         """Return diagnostic context for the system sensor."""
         return {
             "system_name": self._entry.title,
+            "heating_requesting_zones": self.coordinator.data.get("heating_requesting_zones", []),
             "tuv_setpoint_entity": self._entry.data.get("tuv_setpoint_entity"),
             "tuv_top_temp_sensor": self._entry.data.get("tuv_top_temp_sensor"),
             "tuv_bottom_temp_sensor": self._entry.data.get("tuv_bottom_temp_sensor"),
