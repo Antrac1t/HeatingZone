@@ -10,7 +10,13 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .const import DOMAIN
+from .const import (
+    DEFAULT_TUV_DEMAND_BINARY_SENSOR,
+    DEFAULT_TUV_SETPOINT_ENTITY,
+    DEFAULT_TUV_TARGET_TEMP,
+    DEFAULT_TUV_TEMP_DIFF_ENTITY,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -63,6 +69,69 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             return float(state.state)
         except (TypeError, ValueError):
             return None
+
+    def _get_bool_state(self, entity_id: str | None) -> bool | None:
+        """Return a boolean entity state when available."""
+        if not entity_id:
+            return None
+
+        state = self.hass.states.get(entity_id)
+        if not state or state.state in ("unknown", "unavailable"):
+            return None
+
+        if state.state == "on":
+            return True
+        if state.state == "off":
+            return False
+        return None
+
+    def _get_existing_entity_id(self, configured_entity_id: str | None, fallback_entity_id: str) -> str | None:
+        """Return configured entity id or a known fallback when it exists in HA."""
+        if configured_entity_id:
+            return configured_entity_id
+        if self.hass.states.get(fallback_entity_id):
+            return fallback_entity_id
+        return None
+
+    def _get_tuv_demand_binary_sensor(self) -> str | None:
+        """Return the TUV demand binary sensor entity."""
+        return self._get_existing_entity_id(
+            self.entry.data.get("tuv_demand_binary_sensor"),
+            DEFAULT_TUV_DEMAND_BINARY_SENSOR,
+        )
+
+    def _get_tuv_setpoint_entity(self) -> str | None:
+        """Return the TUV setpoint entity."""
+        return self._get_existing_entity_id(
+            self.entry.data.get("tuv_setpoint_entity"),
+            DEFAULT_TUV_SETPOINT_ENTITY,
+        )
+
+    def _get_tuv_temp_diff_entity(self) -> str | None:
+        """Return the TUV hysteresis entity from the heat pump."""
+        return self._get_existing_entity_id(
+            self.entry.data.get("tuv_temp_diff_entity"),
+            DEFAULT_TUV_TEMP_DIFF_ENTITY,
+        )
+
+    def _uses_heat_pump_tuv_demand(self) -> bool:
+        """Return whether TUV demand should follow the heat pump entities."""
+        return self._get_tuv_demand_binary_sensor() is not None
+
+    def _get_tuv_target_temp(self) -> float:
+        """Return TUV target temperature from the heat pump or configured fallback."""
+        setpoint_entity = self._get_tuv_setpoint_entity()
+        setpoint = self._get_float_state(setpoint_entity)
+        if setpoint is not None:
+            return float(setpoint)
+        return float(self.entry.data.get("tuv_target_temp", DEFAULT_TUV_TARGET_TEMP))
+
+    def _get_tuv_temp_diff(self, tuv_target_temp: float, tuv_min_ready_temp: float) -> float:
+        """Return TUV hysteresis from the heat pump or a derived fallback."""
+        temp_diff = self._get_float_state(self._get_tuv_temp_diff_entity())
+        if temp_diff is not None:
+            return max(0.0, float(temp_diff))
+        return max(0.0, float(tuv_target_temp) - float(tuv_min_ready_temp))
 
     def _liters_delta_to_kwh(self, volume_liters: float, delta_temp: float) -> float:
         """Convert water volume and temperature delta to stored energy in kWh."""
@@ -131,7 +200,10 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
 
     async def _async_sync_tuv_setpoint(self, data: dict[str, Any]) -> None:
         """Ensure the TUV setpoint matches the configured target."""
-        tuv_setpoint_entity = self.entry.data.get("tuv_setpoint_entity")
+        if self._uses_heat_pump_tuv_demand():
+            return
+
+        tuv_setpoint_entity = self._get_tuv_setpoint_entity()
         tuv_target_temp = data.get("tuv_target_temp")
         if not tuv_setpoint_entity or tuv_target_temp is None:
             return
@@ -242,9 +314,11 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
 
         tuv_top_temp = self._get_float_state(entry_data.get("tuv_top_temp_sensor"))
         tuv_bottom_temp = self._get_float_state(entry_data.get("tuv_bottom_temp_sensor"))
-        tuv_target_temp = float(entry_data.get("tuv_target_temp", 50.0))
+        tuv_target_temp = self._get_tuv_target_temp()
         tuv_min_ready_temp = float(entry_data.get("tuv_min_ready_temp", 45.0))
         tuv_emergency_min_temp = float(entry_data.get("tuv_emergency_min_temp", 40.0))
+        tuv_temp_diff = self._get_tuv_temp_diff(tuv_target_temp, tuv_min_ready_temp)
+        tuv_restart_temp = max(0.0, tuv_target_temp - tuv_temp_diff)
         tuv_volume_liters = float(entry_data.get("tuv_volume_liters", 200))
         tuv_avg_temp = None
         if tuv_top_temp is not None and tuv_bottom_temp is not None:
@@ -290,7 +364,11 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
         heating_demand_active, heating_requesting_zones = self._get_zone_heating_requests()
         tuv_ready = bool(tuv_top_temp is not None and tuv_top_temp >= tuv_min_ready_temp)
         tuv_emergency = bool(tuv_top_temp is not None and tuv_top_temp < tuv_emergency_min_temp)
-        tuv_demand = bool(tuv_top_temp is not None and not tuv_ready)
+        hp_tuv_demand = self._get_bool_state(self._get_tuv_demand_binary_sensor())
+        if hp_tuv_demand is None:
+            tuv_demand = bool(tuv_top_temp is not None and not tuv_ready)
+        else:
+            tuv_demand = hp_tuv_demand
         has_nt_config = bool(nt_binary_sensor)
         tuv_should_heat = bool(
             tuv_demand and (
@@ -326,11 +404,16 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             "tuv_avg_temp": round(tuv_avg_temp, 2) if tuv_avg_temp is not None else None,
             "tuv_target_temp": tuv_target_temp,
             "tuv_min_ready_temp": tuv_min_ready_temp,
+            "tuv_temp_diff": tuv_temp_diff,
+            "tuv_restart_temp": round(tuv_restart_temp, 2),
             "tuv_emergency_min_temp": tuv_emergency_min_temp,
             "tuv_ready": tuv_ready,
             "tuv_emergency": tuv_emergency,
             "tuv_demand": tuv_demand,
             "tuv_should_heat": tuv_should_heat,
+            "tuv_demand_binary_sensor": self._get_tuv_demand_binary_sensor(),
+            "tuv_setpoint_entity": self._get_tuv_setpoint_entity(),
+            "tuv_temp_diff_entity": self._get_tuv_temp_diff_entity(),
             "tuv_energy_to_target_kwh": round(
                 self._liters_delta_to_kwh(tuv_volume_liters, tuv_target_temp - (tuv_avg_temp or tuv_target_temp)),
                 3,
