@@ -203,6 +203,7 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
         attrs["heat_source_switch"] = self._get_heat_source_switch()
         attrs["heat_mode_entity"] = self._entry.data.get("heat_mode_entity")
         attrs["heating_mode_value"] = self._entry.data.get("heating_mode_value", "Heating Only")
+        attrs["tuv_mode_value"] = self._entry.data.get("tuv_mode_value", "")
         attrs["idle_mode_value"] = self._entry.data.get("idle_mode_value", "")
         attrs["control_heat_source"] = self._is_direct_heat_source_control_enabled()
         attrs["nt_active"] = self.coordinator.data.get("nt_active") if self.coordinator.data else None
@@ -559,7 +560,7 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
                 )
 
     async def _check_and_control_heat_source(self) -> None:
-        """Check if heat source should be on or off based on all zones."""
+        """Refresh coordinator state and re-evaluate shared heat source control."""
         if not self._is_direct_heat_source_control_enabled():
             _LOGGER.debug(
                 "Zone %s: Direct heat source control disabled, skipping shared heat source switching",
@@ -567,27 +568,7 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
             )
             return
 
-        _LOGGER.info("🔍 Checking heat source state across all zones...")
-        
-        any_heating = await self._is_any_zone_heating()
-        heat_source_switch = self._get_heat_source_switch()
-        
-        if not heat_source_switch:
-            _LOGGER.warning("No heat source switch configured!")
-            return
-        
-        heat_source_state = self.hass.states.get(heat_source_switch)
-        heat_source_is_on = heat_source_state and heat_source_state.state == "on"
-        
-        _LOGGER.info(
-            "🔍 Heat source check: any_zone_heating=%s, heat_source_is_on=%s",
-            any_heating, heat_source_is_on
-        )
-        
-        if not any_heating and heat_source_is_on:
-            await self._async_turn_off_heat_source(heat_source_switch)
-        elif any_heating and not heat_source_is_on:
-            await self._async_turn_on_heat_source(heat_source_switch)
+        await self.coordinator.async_refresh()
 
     async def _async_turn_on_heat_source(self, heat_source_switch: str) -> None:
         """Turn on shared heat source, respecting anti-cycling settings."""
