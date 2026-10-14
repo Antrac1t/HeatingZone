@@ -5,23 +5,18 @@
         "title": "Nastavení topného systému",
         "description": "Nakonfigurujte topný systém s více zónami",
         "data": {
-          "name": "Název systému",a{
-  "config": {
-    "step": {
-      "user": {
-        "title": "Nastavení topného systému",
-        "description": "Nakonfigurujte topný systém s více zónami",
-        "data": {
           "name": "Název systému",
           "heat_source_switch": "Spínač zdroje tepla",
           "heat_mode_entity": "Entita režimu TČ (volitelné)",
           "heating_mode_value": "Hodnota režimu topení",
             "tuv_mode_value": "Hodnota režimu ohřevu TUV (volitelné)",
           "idle_mode_value": "Hodnota klidového režimu (volitelné)",
-          "control_heat_source": "Řídit TČ přímo podle požadavků místností",
+          "control_heat_source": "Aktivně řídit TČ podle požadavků systému (TUV i topení)",
           "nt_binary_sensor": "Binární senzor nízkého tarifu (volitelné)",
           "nt_remaining_time_sensor": "Senzor času do změny tarifu (volitelné)",
+          "tuv_demand_binary_sensor": "Binární senzor požadavku na TUV z TČ (volitelné)",
           "tuv_setpoint_entity": "Entita cílové teploty TUV (volitelné)",
+          "tuv_temp_diff_entity": "Entita hystereze TUV z TČ (volitelné)",
           "tuv_top_temp_sensor": "Horní teplotní čidlo TUV (volitelné)",
           "tuv_bottom_temp_sensor": "Dolní teplotní čidlo TUV (volitelné)",
           "tuv_volume_liters": "Objem TUV (litry)",
@@ -68,14 +63,14 @@
       },
       "edit_heat_source": {
         "title": "Zdroj tepla a režimy",
-        "description": "Nastavte spínač TČ, volitelnou entitu režimu a přímé řízení zdroje tepla podle požadavků místností.",
+        "description": "Nastavte spínač TČ, volitelnou entitu režimu a aktivní řízení zdroje tepla podle požadavků systému na TUV i topení.",
         "data": {
           "heat_source_switch": "Spínač zdroje tepla",
           "heat_mode_entity": "Entita režimu TČ (volitelné)",
           "heating_mode_value": "Hodnota režimu topení",
           "tuv_mode_value": "Hodnota režimu ohřevu TUV (volitelné)",
           "idle_mode_value": "Hodnota klidového režimu (volitelné)",
-          "control_heat_source": "Řídit TČ přímo podle požadavků místností"
+          "control_heat_source": "Aktivně řídit TČ podle požadavků systému (TUV i topení)"
         }
       },
       "edit_tariff": {
@@ -90,7 +85,9 @@
         "title": "Teplá užitková voda",
         "description": "Nastavte čidla TUV, objem zásobníku a teplotní prahy pro základní prioritu ohřevu.",
         "data": {
+          "tuv_demand_binary_sensor": "Binární senzor požadavku na TUV z TČ (volitelné)",
           "tuv_setpoint_entity": "Entita cílové teploty TUV (volitelné)",
+          "tuv_temp_diff_entity": "Entita hystereze TUV z TČ (volitelné)",
           "tuv_top_temp_sensor": "Horní teplotní čidlo TUV (volitelné)",
           "tuv_bottom_temp_sensor": "Dolní teplotní čidlo TUV (volitelné)",
           "tuv_volume_liters": "Objem TUV (litry)",
@@ -129,240 +126,12 @@
           "heating_mode_value": "Hodnota režimu topení",
           "tuv_mode_value": "Hodnota režimu ohřevu TUV (volitelné)",
           "idle_mode_value": "Hodnota klidového režimu (volitelné)",
-          "control_heat_source": "Řídit TČ přímo podle požadavků místností",
+          "control_heat_source": "Aktivně řídit TČ podle požadavků systému (TUV i topení)",
           "nt_binary_sensor": "Binární senzor nízkého tarifu (volitelné)",
           "nt_remaining_time_sensor": "Senzor času do změny tarifu (volitelné)",
+          "tuv_demand_binary_sensor": "Binární senzor požadavku na TUV z TČ (volitelné)",
           "tuv_setpoint_entity": "Entita cílové teploty TUV (volitelné)",
-          "tuv_top_temp_sensor": "Horní teplotní čidlo TUV (volitelné)",
-          "tuv_bottom_temp_sensor": "Dolní teplotní čidlo TUV (volitelné)",
-          "tuv_volume_liters": "Objem TUV (litry)",
-          "tuv_target_temp": "Cílová teplota TUV",
-          "tuv_min_ready_temp": "Teplota TUV připravená k použití",
-          "tuv_emergency_min_temp": "Nouzové minimum TUV",
-          "buffer_top_temp_sensor": "Horní teplotní čidlo AN (volitelné)",
-          "buffer_mid_temp_sensor": "Střední teplotní čidlo AN (volitelné)",
-          "buffer_bottom_temp_sensor": "Dolní teplotní čidlo AN (volitelné)",
-          "buffer_volume_liters": "Objem AN (litry)",
-          "buffer_min_usable_temp": "Minimální využitelná teplota AN",
-          "min_buffer_top_temp": "Minimální horní teplota AN pro sepnutí oběhovek (0 = vypnuto)",
-          "valve_open_time": "Čas otevření ventilu (sekundy)",
-          "min_run_time": "Minimální doba běhu (minuty)",
-          "min_off_time": "Minimální doba vypnutí (minuty)"
-        }
-      },
-      "edit_zone": {
-        "title": "Vyberte zónu k úpravě",
-        "description": "Vyberte, kterou zónu chcete upravit",
-        "data": {
-          "zone": "Zóna"
-        }
-      },
-      "delete_zone": {
-        "title": "Vyberte zónu ke smazání",
-        "description": "Tuto akci nelze vrátit zpět",
-        "data": {
-          "zone": "Zóna"
-        }
-      },
-      "zone_basic": {
-        "title": "Základní nastavení zóny",
-        "description": "Nakonfigurujte základní parametry zóny",
-        "data": {
-          "name": "Název zóny",
-          "room_sensor": "Teplotní čidlo místnosti",
-          "circulation_pump": "Oběhové čerpadlo pro tuto zónu (volitelné)",
-          "target_temp": "Výchozí cílová teplota (C)"
-        },
-        "data_description": {
-          "name": "Příklad: Obývák, Ložnice, Kancelář",
-          "room_sensor": "Teplotní senzor pro tuto zónu",
-          "circulation_pump": "Přiřaďte společnou oběhovku, která obsluhuje tuto skupinu místností",
-          "target_temp": "Počáteční cílová teplota (později lze změnit)"
-        }
-      },
-      "zone_control": {
-        "title": "Řízení zóny",
-        "description": "Nastavte jednoduché ON/OFF řízení s hysterezí pro tuto zónu",
-        "data": {
-          "hysteresis": "Hystereze (C)"
-        },
-        "data_description": {
-          "hysteresis": "Teplotní rozdíl před zapnutím nebo vypnutím zóny"
-        }
-      },
-      "zone_valves": {
-        "title": "Správa ventilů - {zone_name}",
-        "description": "Nakonfigurované ventily:\n{valve_list}\n\nKaždá zóna potřebuje alespoň jeden ventil.",
-        "menu_options": {
-          "add_valve": "Přidat ventil",
-          "edit_valve": "Upravit ventil",
-          "delete_valve": "Smazat ventil",
-          "done_valves": "Uložit zónu a pokračovat"
-        }
-      },
-      "add_valve": {
-        "title": "Přidat ventil do zóny",
-        "description": "Nakonfigurujte ventil pro tuto zónu",
-        "data": {
-          "valve": "Entita spínače ventilu",
-          "floor_sensor": "Teplotní čidlo podlahy (volitelné)",
-          "max_floor_temp": "Maximální teplota podlahy (C)"
-        },
-        "data_description": {
-          "valve": "Switch entita, která ovládá tento ventil",
-          "floor_sensor": "Volitelné sledování teploty podlahy pro zabránění přetápění",
-          "max_floor_temp": "Pokud je použit senzor podlahy, ventil se zavře při dosažení této teploty"
-        }
-      },
-      "edit_valve": {
-        "title": "Vyberte ventil k úpravě",
-        "description": "Vyberte, který ventil chcete upravit",
-        "data": {
-          "valve_index": "Ventil"
-        }
-      },
-      "edit_valve_details": {
-        "title": "Upravit nastavení ventilu",
-        "description": "Změňte konfiguraci ventilu",
-        "data": {
-          "valve": "Entita spínače ventilu",
-          "floor_sensor": "Teplotní čidlo podlahy (volitelné)",
-          "max_floor_temp": "Maximální teplota podlahy (C)"
-        },
-        "data_description": {
-          "valve": "Switch entita, která ovládá tento ventil",
-          "floor_sensor": "Volitelné sledování teploty podlahy pro zabránění přetápění",
-          "max_floor_temp": "Pokud je použit senzor podlahy, ventil se zavře při dosažení této teploty"
-        }
-      },
-      "delete_valve": {
-        "title": "Smazat ventil",
-        "description": "Vyberte ventil pro odstranění z této zóny",
-        "data": {
-          "valve_index": "Ventil"
-        }
-      }
-    }
-  }
-}
-
-          "heat_source_switch": "Spínač zdroje tepla",
-          "heat_mode_entity": "Entita režimu TČ (volitelné)",
-          "heating_mode_value": "Hodnota režimu topení",
-          "idle_mode_value": "Hodnota klidového režimu (volitelné)",
-          "control_heat_source": "Řídit TČ přímo podle požadavků místností",
-          "nt_binary_sensor": "Binární senzor nízkého tarifu (volitelné)",
-          "nt_remaining_time_sensor": "Senzor času do změny tarifu (volitelné)",
-          "tuv_setpoint_entity": "Entita cílové teploty TUV (volitelné)",
-          "tuv_top_temp_sensor": "Horní teplotní čidlo TUV (volitelné)",
-          "tuv_bottom_temp_sensor": "Dolní teplotní čidlo TUV (volitelné)",
-          "tuv_volume_liters": "Objem TUV (litry)",
-          "tuv_target_temp": "Cílová teplota TUV",
-          "tuv_min_ready_temp": "Teplota TUV připravená k použití",
-          "tuv_emergency_min_temp": "Nouzové minimum TUV",
-          "buffer_top_temp_sensor": "Horní teplotní čidlo AN (volitelné)",
-          "buffer_mid_temp_sensor": "Střední teplotní čidlo AN (volitelné)",
-          "buffer_bottom_temp_sensor": "Dolní teplotní čidlo AN (volitelné)",
-          "buffer_volume_liters": "Objem AN (litry)",
-          "buffer_min_usable_temp": "Minimální využitelná teplota AN",
-          "min_buffer_top_temp": "Minimální horní teplota AN pro sepnutí oběhovek (0 = vypnuto)",
-          "valve_open_time": "Čas otevření ventilu (sekundy)",
-          "min_run_time": "Minimální doba běhu (minuty)",
-          "min_off_time": "Minimální doba vypnutí (minuty)"
-        }
-      }
-    },
-    "error": {
-      "cannot_connect": "Failed to connect",
-      "invalid_auth": "Invalid authentication",
-      "unknown": "Unexpected error"
-    },
-    "abort": {
-      "already_configured": "System is already configured"
-    }
-  },
-  "options": {
-    "step": {
-      "init": {
-        "title": "Správa topných zón",
-        "description": "Nakonfigurujte topné zóny",
-        "menu_options": {
-          "edit_heat_source": "Zdroj tepla a režimy",
-          "edit_tariff": "Nízký tarif",
-          "edit_tuv": "Teplá užitková voda",
-          "edit_buffer": "Akumulační nádrž",
-          "edit_timing": "Časování a ochrany",
-          "add_zone": "Přidat novou zónu",
-          "edit_zone": "Upravit existující zónu",
-          "delete_zone": "Smazat zónu",
-          "finish": "Dokončit konfiguraci"
-        }
-      },
-      "edit_heat_source": {
-        "title": "Zdroj tepla a režimy",
-        "description": "Nastavte spínač TČ, volitelnou entitu režimu a přímé řízení zdroje tepla podle požadavků místností.",
-        "data": {
-          "heat_source_switch": "Spínač zdroje tepla",
-          "heat_mode_entity": "Entita režimu TČ (volitelné)",
-          "heating_mode_value": "Hodnota režimu topení",
-          "idle_mode_value": "Hodnota klidového režimu (volitelné)",
-          "control_heat_source": "Řídit TČ přímo podle požadavků místností"
-        }
-      },
-      "edit_tariff": {
-        "title": "Nízký tarif",
-        "description": "Nastavte entity pro detekci nízkého tarifu a volitelně i údaj o zbývajícím čase do přepnutí.",
-        "data": {
-          "nt_binary_sensor": "Binární senzor nízkého tarifu (volitelné)",
-          "nt_remaining_time_sensor": "Senzor času do změny tarifu (volitelné)"
-        }
-      },
-      "edit_tuv": {
-        "title": "Teplá užitková voda",
-        "description": "Nastavte čidla TUV, objem zásobníku a teplotní prahy pro základní prioritu ohřevu.",
-        "data": {
-          "tuv_setpoint_entity": "Entita cílové teploty TUV (volitelné)",
-          "tuv_top_temp_sensor": "Horní teplotní čidlo TUV (volitelné)",
-          "tuv_bottom_temp_sensor": "Dolní teplotní čidlo TUV (volitelné)",
-          "tuv_volume_liters": "Objem TUV (litry)",
-          "tuv_target_temp": "Cílová teplota TUV",
-          "tuv_min_ready_temp": "Teplota TUV připravená k použití",
-          "tuv_emergency_min_temp": "Nouzové minimum TUV"
-        }
-      },
-      "edit_buffer": {
-        "title": "Akumulační nádrž",
-        "description": "Nastavte čidla AN, objem a teploty pro odhad využitelné energie a povolení oběhovek.",
-        "data": {
-          "buffer_top_temp_sensor": "Horní teplotní čidlo AN (volitelné)",
-          "buffer_mid_temp_sensor": "Střední teplotní čidlo AN (volitelné)",
-          "buffer_bottom_temp_sensor": "Dolní teplotní čidlo AN (volitelné)",
-          "buffer_volume_liters": "Objem AN (litry)",
-          "buffer_min_usable_temp": "Minimální využitelná teplota AN",
-          "min_buffer_top_temp": "Minimální horní teplota AN pro sepnutí oběhovek (0 = vypnuto)"
-        }
-      },
-      "edit_timing": {
-        "title": "Časování a ochrany",
-        "description": "Nastavte doby otevření ventilů a ochranu proti taktování společného zdroje tepla.",
-        "data": {
-          "valve_open_time": "Čas otevření ventilu (sekundy)",
-          "min_run_time": "Minimální doba běhu (minuty)",
-          "min_off_time": "Minimální doba vypnutí (minuty)"
-        }
-      },
-      "edit_system": {
-        "title": "Nastavení TČ",
-        "description": "Nastavte společný zdroj tepla, časy ventilů a ochranu proti taktování",
-        "data": {
-          "heat_source_switch": "Spínač zdroje tepla",
-          "heat_mode_entity": "Entita režimu TČ (volitelné)",
-          "heating_mode_value": "Hodnota režimu topení",
-          "idle_mode_value": "Hodnota klidového režimu (volitelné)",
-          "control_heat_source": "Řídit TČ přímo podle požadavků místností",
-          "nt_binary_sensor": "Binární senzor nízkého tarifu (volitelné)",
-          "nt_remaining_time_sensor": "Senzor času do změny tarifu (volitelné)",
-          "tuv_setpoint_entity": "Entita cílové teploty TUV (volitelné)",
+          "tuv_temp_diff_entity": "Entita hystereze TUV z TČ (volitelné)",
           "tuv_top_temp_sensor": "Horní teplotní čidlo TUV (volitelné)",
           "tuv_bottom_temp_sensor": "Dolní teplotní čidlo TUV (volitelné)",
           "tuv_volume_liters": "Objem TUV (litry)",
