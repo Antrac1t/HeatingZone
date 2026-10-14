@@ -23,6 +23,7 @@ from .const import (
     DEFAULT_TARGET_TEMP,
     DEFAULT_TUV_EMERGENCY_MIN_TEMP,
     DEFAULT_TUV_MIN_READY_TEMP,
+    DEFAULT_TUV_MODE_VALUE,
     DEFAULT_TUV_TARGET_TEMP,
     DEFAULT_TUV_VOLUME_LITERS,
     DEFAULT_VALVE_OPEN_TIME,
@@ -70,6 +71,12 @@ class HeatingZoneConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             vol.Optional(
                 "heating_mode_value",
                 default=defaults.get("heating_mode_value", "Heating Only"),
+            )
+        ] = str
+        schema[
+            vol.Optional(
+                "tuv_mode_value",
+                default=defaults.get("tuv_mode_value", DEFAULT_TUV_MODE_VALUE),
             )
         ] = str
         schema[
@@ -290,6 +297,10 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(
                     "heating_mode_value",
                     default=defaults.get("heating_mode_value", "Heating Only"),
+                ): str,
+                vol.Optional(
+                    "tuv_mode_value",
+                    default=defaults.get("tuv_mode_value", DEFAULT_TUV_MODE_VALUE),
                 ): str,
                 vol.Optional(
                     "idle_mode_value",
