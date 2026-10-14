@@ -32,6 +32,14 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
+def _optional_entity_key(defaults: dict[str, Any], key: str) -> vol.Marker:
+    """Build an optional key without passing None as a default."""
+    default_value = defaults.get(key)
+    if default_value is None:
+        return vol.Optional(key)
+    return vol.Optional(key, default=default_value)
+
+
 class HeatingZoneConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Heating Zone."""
 
@@ -55,7 +63,7 @@ class HeatingZoneConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema[vol.Required("heat_source_switch")] = selector.EntitySelector(
             selector.EntitySelectorConfig(domain="switch")
         )
-        schema[vol.Optional("heat_mode_entity")] = selector.EntitySelector(
+        schema[_optional_entity_key(defaults, "heat_mode_entity")] = selector.EntitySelector(
             selector.EntitySelectorConfig(domain="select")
         )
         schema[
@@ -76,19 +84,19 @@ class HeatingZoneConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 default=defaults.get("control_heat_source", DEFAULT_CONTROL_HEAT_SOURCE),
             )
         ] = bool
-        schema[vol.Optional("nt_binary_sensor")] = selector.EntitySelector(
+        schema[_optional_entity_key(defaults, "nt_binary_sensor")] = selector.EntitySelector(
             selector.EntitySelectorConfig(domain="binary_sensor")
         )
-        schema[vol.Optional("nt_remaining_time_sensor")] = selector.EntitySelector(
+        schema[_optional_entity_key(defaults, "nt_remaining_time_sensor")] = selector.EntitySelector(
             selector.EntitySelectorConfig(domain="sensor")
         )
-        schema[vol.Optional("tuv_setpoint_entity")] = selector.EntitySelector(
+        schema[_optional_entity_key(defaults, "tuv_setpoint_entity")] = selector.EntitySelector(
             selector.EntitySelectorConfig(domain="number")
         )
-        schema[vol.Optional("tuv_top_temp_sensor")] = selector.EntitySelector(
+        schema[_optional_entity_key(defaults, "tuv_top_temp_sensor")] = selector.EntitySelector(
             selector.EntitySelectorConfig(domain="sensor")
         )
-        schema[vol.Optional("tuv_bottom_temp_sensor")] = selector.EntitySelector(
+        schema[_optional_entity_key(defaults, "tuv_bottom_temp_sensor")] = selector.EntitySelector(
             selector.EntitySelectorConfig(domain="sensor")
         )
         schema[
@@ -147,13 +155,13 @@ class HeatingZoneConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 mode=selector.NumberSelectorMode.BOX,
             )
         )
-        schema[vol.Optional("buffer_top_temp_sensor")] = selector.EntitySelector(
+        schema[_optional_entity_key(defaults, "buffer_top_temp_sensor")] = selector.EntitySelector(
             selector.EntitySelectorConfig(domain="sensor")
         )
-        schema[vol.Optional("buffer_mid_temp_sensor")] = selector.EntitySelector(
+        schema[_optional_entity_key(defaults, "buffer_mid_temp_sensor")] = selector.EntitySelector(
             selector.EntitySelectorConfig(domain="sensor")
         )
-        schema[vol.Optional("buffer_bottom_temp_sensor")] = selector.EntitySelector(
+        schema[_optional_entity_key(defaults, "buffer_bottom_temp_sensor")] = selector.EntitySelector(
             selector.EntitySelectorConfig(domain="sensor")
         )
         schema[
@@ -276,10 +284,7 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
                 ): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="switch")
                 ),
-                vol.Optional(
-                    "heat_mode_entity",
-                    default=defaults.get("heat_mode_entity"),
-                ): selector.EntitySelector(
+                _optional_entity_key(defaults, "heat_mode_entity"): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="select")
                 ),
                 vol.Optional(
@@ -302,16 +307,10 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
         defaults = dict(self.config_entry.data)
         return vol.Schema(
             {
-                vol.Optional(
-                    "nt_binary_sensor",
-                    default=defaults.get("nt_binary_sensor"),
-                ): selector.EntitySelector(
+                _optional_entity_key(defaults, "nt_binary_sensor"): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="binary_sensor")
                 ),
-                vol.Optional(
-                    "nt_remaining_time_sensor",
-                    default=defaults.get("nt_remaining_time_sensor"),
-                ): selector.EntitySelector(
+                _optional_entity_key(defaults, "nt_remaining_time_sensor"): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="sensor")
                 ),
             }
@@ -322,22 +321,13 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
         defaults = dict(self.config_entry.data)
         return vol.Schema(
             {
-                vol.Optional(
-                    "tuv_setpoint_entity",
-                    default=defaults.get("tuv_setpoint_entity"),
-                ): selector.EntitySelector(
+                _optional_entity_key(defaults, "tuv_setpoint_entity"): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="number")
                 ),
-                vol.Optional(
-                    "tuv_top_temp_sensor",
-                    default=defaults.get("tuv_top_temp_sensor"),
-                ): selector.EntitySelector(
+                _optional_entity_key(defaults, "tuv_top_temp_sensor"): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="sensor")
                 ),
-                vol.Optional(
-                    "tuv_bottom_temp_sensor",
-                    default=defaults.get("tuv_bottom_temp_sensor"),
-                ): selector.EntitySelector(
+                _optional_entity_key(defaults, "tuv_bottom_temp_sensor"): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="sensor")
                 ),
                 vol.Optional(
@@ -396,22 +386,13 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
         defaults = dict(self.config_entry.data)
         return vol.Schema(
             {
-                vol.Optional(
-                    "buffer_top_temp_sensor",
-                    default=defaults.get("buffer_top_temp_sensor"),
-                ): selector.EntitySelector(
+                _optional_entity_key(defaults, "buffer_top_temp_sensor"): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="sensor")
                 ),
-                vol.Optional(
-                    "buffer_mid_temp_sensor",
-                    default=defaults.get("buffer_mid_temp_sensor"),
-                ): selector.EntitySelector(
+                _optional_entity_key(defaults, "buffer_mid_temp_sensor"): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="sensor")
                 ),
-                vol.Optional(
-                    "buffer_bottom_temp_sensor",
-                    default=defaults.get("buffer_bottom_temp_sensor"),
-                ): selector.EntitySelector(
+                _optional_entity_key(defaults, "buffer_bottom_temp_sensor"): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="sensor")
                 ),
                 vol.Optional(
