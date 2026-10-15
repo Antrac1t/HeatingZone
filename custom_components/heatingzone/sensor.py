@@ -47,6 +47,12 @@ SENSORS: tuple[HeatingZoneSensorDescription, ...] = (
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
     ),
     HeatingZoneSensorDescription(
+        key="tuv_current_temp",
+        name="TUV aktualni teplota",
+        value_key="tuv_current_temp",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+    ),
+    HeatingZoneSensorDescription(
         key="tuv_energy_to_target_kwh",
         name="TUV energie do cile",
         value_key="tuv_energy_to_target_kwh",
@@ -141,7 +147,10 @@ class HeatingZoneSystemSensor(CoordinatorEntity, SensorEntity):
         return {
             "system_name": self._entry.title,
             "heating_requesting_zones": self.coordinator.data.get("heating_requesting_zones", []),
+            "heating_demand_binary_sensor": self.coordinator.data.get("heating_demand_binary_sensor"),
+            "tuv_demand_binary_sensor": self.coordinator.data.get("tuv_demand_binary_sensor"),
             "tuv_setpoint_entity": self._entry.data.get("tuv_setpoint_entity"),
+            "tuv_current_temp_sensor": self.coordinator.data.get("tuv_current_temp_sensor"),
             "tuv_top_temp_sensor": self._entry.data.get("tuv_top_temp_sensor"),
             "tuv_bottom_temp_sensor": self._entry.data.get("tuv_bottom_temp_sensor"),
             "buffer_top_temp_sensor": self._entry.data.get("buffer_top_temp_sensor"),
