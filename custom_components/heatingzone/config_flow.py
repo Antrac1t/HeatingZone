@@ -15,12 +15,14 @@ from .const import (
     DEFAULT_BUFFER_VOLUME_LITERS,
     DEFAULT_MIN_BUFFER_TOP_TEMP,
     DEFAULT_CONTROL_HEAT_SOURCE,
+    DEFAULT_HEATING_DEMAND_BINARY_SENSOR,
     DEFAULT_HYSTERESIS,
     DEFAULT_MAX_FLOOR_TEMP,
     DEFAULT_MIN_OFF_TIME,
     DEFAULT_MIN_RUN_TIME,
     DEFAULT_NAME,
     DEFAULT_TARGET_TEMP,
+    DEFAULT_TUV_CURRENT_TEMP_SENSOR,
     DEFAULT_TUV_DEMAND_BINARY_SENSOR,
     DEFAULT_TUV_EMERGENCY_MIN_TEMP,
     DEFAULT_TUV_MIN_READY_TEMP,
@@ -102,6 +104,14 @@ class HeatingZoneConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
         schema[
             _optional_entity_key(
+                {**defaults, "heating_demand_binary_sensor": defaults.get("heating_demand_binary_sensor", DEFAULT_HEATING_DEMAND_BINARY_SENSOR)},
+                "heating_demand_binary_sensor",
+            )
+        ] = selector.EntitySelector(
+            selector.EntitySelectorConfig(domain="binary_sensor")
+        )
+        schema[
+            _optional_entity_key(
                 {**defaults, "tuv_demand_binary_sensor": defaults.get("tuv_demand_binary_sensor", DEFAULT_TUV_DEMAND_BINARY_SENSOR)},
                 "tuv_demand_binary_sensor",
             )
@@ -123,6 +133,14 @@ class HeatingZoneConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
         ] = selector.EntitySelector(
             selector.EntitySelectorConfig(domain="number")
+        )
+        schema[
+            _optional_entity_key(
+                {**defaults, "tuv_current_temp_sensor": defaults.get("tuv_current_temp_sensor", DEFAULT_TUV_CURRENT_TEMP_SENSOR)},
+                "tuv_current_temp_sensor",
+            )
+        ] = selector.EntitySelector(
+            selector.EntitySelectorConfig(domain="sensor")
         )
         schema[_optional_entity_key(defaults, "tuv_top_temp_sensor")] = selector.EntitySelector(
             selector.EntitySelectorConfig(domain="sensor")
@@ -357,6 +375,12 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
         return vol.Schema(
             {
                 _optional_entity_key(
+                    {**defaults, "heating_demand_binary_sensor": defaults.get("heating_demand_binary_sensor", DEFAULT_HEATING_DEMAND_BINARY_SENSOR)},
+                    "heating_demand_binary_sensor",
+                ): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="binary_sensor")
+                ),
+                _optional_entity_key(
                     {**defaults, "tuv_demand_binary_sensor": defaults.get("tuv_demand_binary_sensor", DEFAULT_TUV_DEMAND_BINARY_SENSOR)},
                     "tuv_demand_binary_sensor",
                 ): selector.EntitySelector(
@@ -373,6 +397,12 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
                     "tuv_temp_diff_entity",
                 ): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="number")
+                ),
+                _optional_entity_key(
+                    {**defaults, "tuv_current_temp_sensor": defaults.get("tuv_current_temp_sensor", DEFAULT_TUV_CURRENT_TEMP_SENSOR)},
+                    "tuv_current_temp_sensor",
+                ): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="sensor")
                 ),
                 _optional_entity_key(defaults, "tuv_top_temp_sensor"): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="sensor")
@@ -464,18 +494,6 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
                     selector.NumberSelectorConfig(
                         min=20,
                         max=60,
-                        step=0.5,
-                        unit_of_measurement="°C",
-                        mode=selector.NumberSelectorMode.BOX,
-                    )
-                ),
-                vol.Optional(
-                    "min_buffer_top_temp",
-                    default=defaults.get("min_buffer_top_temp", DEFAULT_MIN_BUFFER_TOP_TEMP),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=0,
-                        max=80,
                         step=0.5,
                         unit_of_measurement="°C",
                         mode=selector.NumberSelectorMode.BOX,
