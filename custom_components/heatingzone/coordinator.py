@@ -149,6 +149,13 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             return max(0.0, float(temp_diff))
         return max(0.0, float(tuv_target_temp) - float(tuv_min_ready_temp))
 
+    def _get_average_temperature(self, *values: float | None) -> float | None:
+        """Return an average from available temperature values."""
+        available_values = [value for value in values if value is not None]
+        if not available_values:
+            return None
+        return sum(available_values) / len(available_values)
+
     def _liters_delta_to_kwh(self, volume_liters: float, delta_temp: float) -> float:
         """Convert water volume and temperature delta to stored energy in kWh."""
         if delta_temp <= 0 or volume_liters <= 0:
@@ -382,25 +389,28 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
 
         heating_request_active, heating_requesting_zones = self._get_zone_heating_requests()
         heating_cycle_active = bool(self._get_bool_state(self._get_heating_demand_binary_sensor()))
-        effective_tuv_temp = tuv_current_temp
-        if effective_tuv_temp is None:
-            effective_tuv_temp = tuv_top_temp
-        if effective_tuv_temp is None:
-            effective_tuv_temp = tuv_bottom_temp
+        tuv_control_temp = self._get_average_temperature(tuv_current_temp, tuv_top_temp)
+        if tuv_control_temp is None:
+            tuv_control_temp = tuv_current_temp
+        if tuv_control_temp is None:
+            tuv_control_temp = tuv_top_temp
+        if tuv_control_temp is None:
+            tuv_control_temp = tuv_bottom_temp
 
-        tuv_ready = bool(effective_tuv_temp is not None and effective_tuv_temp >= tuv_target_temp)
-        tuv_emergency = bool(effective_tuv_temp is not None and effective_tuv_temp < tuv_emergency_min_temp)
+        tuv_ready = bool(tuv_control_temp is not None and tuv_control_temp >= tuv_target_temp)
+        tuv_emergency = bool(tuv_control_temp is not None and tuv_control_temp < tuv_emergency_min_temp)
         hp_tuv_demand = self._get_bool_state(self._get_tuv_demand_binary_sensor())
-        if hp_tuv_demand is None:
-            tuv_demand = bool(effective_tuv_temp is not None and effective_tuv_temp <= tuv_restart_temp)
-        else:
-            tuv_demand = hp_tuv_demand
+        tuv_recharge_needed = bool(tuv_control_temp is not None and tuv_control_temp <= tuv_restart_temp)
+        tuv_demand = bool(tuv_recharge_needed or tuv_emergency)
         has_nt_config = bool(nt_binary_sensor)
+        tuv_cycle_active = bool(hp_tuv_demand)
         tuv_should_heat = bool(
-            tuv_demand and (
+            tuv_cycle_active or (
+                tuv_demand and (
                 tuv_emergency
                 or nt_active
                 or not has_nt_config
+                )
             )
         )
 
@@ -427,7 +437,8 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             else None,
             "heating_demand_binary_sensor": self._get_heating_demand_binary_sensor(),
             "tuv_current_temp_sensor": self._get_tuv_current_temp_sensor(),
-            "tuv_current_temp": effective_tuv_temp,
+            "tuv_current_temp": tuv_current_temp,
+            "tuv_control_temp": round(tuv_control_temp, 2) if tuv_control_temp is not None else None,
             "tuv_top_temp": tuv_top_temp,
             "tuv_bottom_temp": tuv_bottom_temp,
             "tuv_avg_temp": round(tuv_avg_temp, 2) if tuv_avg_temp is not None else None,
@@ -439,6 +450,8 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             "tuv_ready": tuv_ready,
             "tuv_emergency": tuv_emergency,
             "tuv_demand": tuv_demand,
+            "tuv_recharge_needed": tuv_recharge_needed,
+            "tuv_cycle_active": tuv_cycle_active,
             "tuv_should_heat": tuv_should_heat,
             "tuv_demand_binary_sensor": self._get_tuv_demand_binary_sensor(),
             "tuv_setpoint_entity": self._get_tuv_setpoint_entity(),
