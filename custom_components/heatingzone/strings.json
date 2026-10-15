@@ -14,9 +14,11 @@
           "control_heat_source": "Aktivně řídit TČ podle požadavků systému (TUV i topení)",
           "nt_binary_sensor": "Binární senzor nízkého tarifu (volitelné)",
           "nt_remaining_time_sensor": "Senzor času do změny tarifu (volitelné)",
+          "heating_demand_binary_sensor": "Binární senzor požadavku na topení z TČ (volitelné)",
           "tuv_demand_binary_sensor": "Binární senzor požadavku na TUV z TČ (volitelné)",
           "tuv_setpoint_entity": "Entita cílové teploty TUV (volitelné)",
           "tuv_temp_diff_entity": "Entita hystereze TUV z TČ (volitelné)",
+          "tuv_current_temp_sensor": "Aktuální teplota TUV z TČ (volitelné)",
           "tuv_top_temp_sensor": "Horní teplotní čidlo TUV (volitelné)",
           "tuv_bottom_temp_sensor": "Dolní teplotní čidlo TUV (volitelné)",
           "tuv_volume_liters": "Objem TUV (litry)",
@@ -27,8 +29,7 @@
           "buffer_mid_temp_sensor": "Střední teplotní čidlo AN (volitelné)",
           "buffer_bottom_temp_sensor": "Dolní teplotní čidlo AN (volitelné)",
           "buffer_volume_liters": "Objem AN (litry)",
-          "buffer_min_usable_temp": "Minimální využitelná teplota AN",
-          "min_buffer_top_temp": "Minimální horní teplota AN pro sepnutí oběhovek (0 = vypnuto)",
+          "buffer_min_usable_temp": "Referenční minimální teplota AN pro výpočet energie",
           "valve_open_time": "Čas otevření ventilu (sekundy)",
           "min_run_time": "Minimální doba běhu (minuty)",
           "min_off_time": "Minimální doba vypnutí (minuty)"
@@ -85,9 +86,11 @@
         "title": "Teplá užitková voda",
         "description": "Nastavte čidla TUV, objem zásobníku a teplotní prahy pro základní prioritu ohřevu.",
         "data": {
+          "heating_demand_binary_sensor": "Binární senzor požadavku na topení z TČ (volitelné)",
           "tuv_demand_binary_sensor": "Binární senzor požadavku na TUV z TČ (volitelné)",
           "tuv_setpoint_entity": "Entita cílové teploty TUV (volitelné)",
           "tuv_temp_diff_entity": "Entita hystereze TUV z TČ (volitelné)",
+          "tuv_current_temp_sensor": "Aktuální teplota TUV z TČ (volitelné)",
           "tuv_top_temp_sensor": "Horní teplotní čidlo TUV (volitelné)",
           "tuv_bottom_temp_sensor": "Dolní teplotní čidlo TUV (volitelné)",
           "tuv_volume_liters": "Objem TUV (litry)",
@@ -104,8 +107,7 @@
           "buffer_mid_temp_sensor": "Střední teplotní čidlo AN (volitelné)",
           "buffer_bottom_temp_sensor": "Dolní teplotní čidlo AN (volitelné)",
           "buffer_volume_liters": "Objem AN (litry)",
-          "buffer_min_usable_temp": "Minimální využitelná teplota AN",
-          "min_buffer_top_temp": "Minimální horní teplota AN pro sepnutí oběhovek (0 = vypnuto)"
+          "buffer_min_usable_temp": "Referenční minimální teplota AN pro výpočet energie"
         }
       },
       "edit_timing": {
@@ -129,9 +131,11 @@
           "control_heat_source": "Aktivně řídit TČ podle požadavků systému (TUV i topení)",
           "nt_binary_sensor": "Binární senzor nízkého tarifu (volitelné)",
           "nt_remaining_time_sensor": "Senzor času do změny tarifu (volitelné)",
+          "heating_demand_binary_sensor": "Binární senzor požadavku na topení z TČ (volitelné)",
           "tuv_demand_binary_sensor": "Binární senzor požadavku na TUV z TČ (volitelné)",
           "tuv_setpoint_entity": "Entita cílové teploty TUV (volitelné)",
           "tuv_temp_diff_entity": "Entita hystereze TUV z TČ (volitelné)",
+          "tuv_current_temp_sensor": "Aktuální teplota TUV z TČ (volitelné)",
           "tuv_top_temp_sensor": "Horní teplotní čidlo TUV (volitelné)",
           "tuv_bottom_temp_sensor": "Dolní teplotní čidlo TUV (volitelné)",
           "tuv_volume_liters": "Objem TUV (litry)",
@@ -142,8 +146,7 @@
           "buffer_mid_temp_sensor": "Střední teplotní čidlo AN (volitelné)",
           "buffer_bottom_temp_sensor": "Dolní teplotní čidlo AN (volitelné)",
           "buffer_volume_liters": "Objem AN (litry)",
-          "buffer_min_usable_temp": "Minimální využitelná teplota AN",
-          "min_buffer_top_temp": "Minimální horní teplota AN pro sepnutí oběhovek (0 = vypnuto)",
+          "buffer_min_usable_temp": "Referenční minimální teplota AN pro výpočet energie",
           "valve_open_time": "Čas otevření ventilu (sekundy)",
           "min_run_time": "Minimální doba běhu (minuty)",
           "min_off_time": "Minimální doba vypnutí (minuty)"
