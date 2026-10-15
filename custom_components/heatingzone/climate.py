@@ -278,12 +278,7 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
 
     def _is_buffer_ready_for_circulation(self) -> bool:
         """Return whether the buffer tank is warm enough to start circulation pumps."""
-        min_buffer_top_temp = float(self._entry.data.get("min_buffer_top_temp", 0.0))
-        if min_buffer_top_temp <= 0:
-            return True
-
-        buffer_top_temp = self._get_buffer_top_temperature()
-        return buffer_top_temp is not None and buffer_top_temp >= min_buffer_top_temp
+        return True
 
     def _uses_buffer_tank(self) -> bool:
         """Return whether this installation is configured to use a buffer tank."""
@@ -291,7 +286,6 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
             (
                 self._entry.data.get("buffer_top_temp_sensor"),
                 self._entry.data.get("buffer_bottom_temp_sensor"),
-                float(self._entry.data.get("min_buffer_top_temp", 0.0)) > 0,
             )
         )
 
