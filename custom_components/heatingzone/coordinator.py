@@ -11,6 +11,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
+    DEFAULT_HEATING_DEMAND_BINARY_SENSOR,
+    DEFAULT_TUV_CURRENT_TEMP_SENSOR,
     DEFAULT_TUV_DEMAND_BINARY_SENSOR,
     DEFAULT_TUV_SETPOINT_ENTITY,
     DEFAULT_TUV_TARGET_TEMP,
@@ -100,11 +102,25 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             DEFAULT_TUV_DEMAND_BINARY_SENSOR,
         )
 
+    def _get_heating_demand_binary_sensor(self) -> str | None:
+        """Return the heating demand binary sensor entity."""
+        return self._get_existing_entity_id(
+            self.entry.data.get("heating_demand_binary_sensor"),
+            DEFAULT_HEATING_DEMAND_BINARY_SENSOR,
+        )
+
     def _get_tuv_setpoint_entity(self) -> str | None:
         """Return the TUV setpoint entity."""
         return self._get_existing_entity_id(
             self.entry.data.get("tuv_setpoint_entity"),
             DEFAULT_TUV_SETPOINT_ENTITY,
+        )
+
+    def _get_tuv_current_temp_sensor(self) -> str | None:
+        """Return the current TUV temperature sensor entity."""
+        return self._get_existing_entity_id(
+            self.entry.data.get("tuv_current_temp_sensor"),
+            DEFAULT_TUV_CURRENT_TEMP_SENSOR,
         )
 
     def _get_tuv_temp_diff_entity(self) -> str | None:
@@ -295,7 +311,14 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             )
             return
 
-        if data.get("heating_demand_active"):
+        if data.get("heating_request_active"):
+            await self._async_turn_on_heat_source(
+                heat_source_switch,
+                self.entry.data.get("heating_mode_value", "Heating Only"),
+            )
+            return
+
+        if data.get("heating_cycle_active"):
             await self._async_turn_on_heat_source(
                 heat_source_switch,
                 self.entry.data.get("heating_mode_value", "Heating Only"),
@@ -312,6 +335,7 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
         nt_state = self.hass.states.get(nt_binary_sensor) if nt_binary_sensor else None
         nt_active = bool(nt_state and nt_state.state == "on")
 
+        tuv_current_temp = self._get_float_state(self._get_tuv_current_temp_sensor())
         tuv_top_temp = self._get_float_state(entry_data.get("tuv_top_temp_sensor"))
         tuv_bottom_temp = self._get_float_state(entry_data.get("tuv_bottom_temp_sensor"))
         tuv_target_temp = self._get_tuv_target_temp()
@@ -333,7 +357,6 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
         buffer_bottom_temp = self._get_float_state(entry_data.get("buffer_bottom_temp_sensor"))
         buffer_volume_liters = float(entry_data.get("buffer_volume_liters", 500))
         buffer_min_usable_temp = float(entry_data.get("buffer_min_usable_temp", 30.0))
-        min_buffer_top_temp = float(entry_data.get("min_buffer_top_temp", 0.0))
 
         buffer_usable_energy_kwh = 0.0
         if buffer_top_temp is not None and buffer_mid_temp is not None and buffer_bottom_temp is not None:
@@ -356,17 +379,20 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             )
 
         buffer_ready_for_heating = True
-        if min_buffer_top_temp > 0:
-            buffer_ready_for_heating = (
-                buffer_top_temp is not None and buffer_top_temp >= min_buffer_top_temp
-            )
 
-        heating_demand_active, heating_requesting_zones = self._get_zone_heating_requests()
-        tuv_ready = bool(tuv_top_temp is not None and tuv_top_temp >= tuv_min_ready_temp)
-        tuv_emergency = bool(tuv_top_temp is not None and tuv_top_temp < tuv_emergency_min_temp)
+        heating_request_active, heating_requesting_zones = self._get_zone_heating_requests()
+        heating_cycle_active = bool(self._get_bool_state(self._get_heating_demand_binary_sensor()))
+        effective_tuv_temp = tuv_current_temp
+        if effective_tuv_temp is None:
+            effective_tuv_temp = tuv_top_temp
+        if effective_tuv_temp is None:
+            effective_tuv_temp = tuv_bottom_temp
+
+        tuv_ready = bool(effective_tuv_temp is not None and effective_tuv_temp >= tuv_target_temp)
+        tuv_emergency = bool(effective_tuv_temp is not None and effective_tuv_temp < tuv_emergency_min_temp)
         hp_tuv_demand = self._get_bool_state(self._get_tuv_demand_binary_sensor())
         if hp_tuv_demand is None:
-            tuv_demand = bool(tuv_top_temp is not None and not tuv_ready)
+            tuv_demand = bool(effective_tuv_temp is not None and effective_tuv_temp <= tuv_restart_temp)
         else:
             tuv_demand = hp_tuv_demand
         has_nt_config = bool(nt_binary_sensor)
@@ -378,18 +404,18 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             )
         )
 
-        if tuv_demand:
+        if tuv_should_heat:
             system_demand_state = "ohrev_tuv"
-        elif heating_demand_active:
+        elif heating_request_active or heating_cycle_active:
             system_demand_state = "topeni"
         else:
             system_demand_state = "nic"
 
         if tuv_should_heat:
             system_recommended_action = "ohrivat_tuv"
-        elif tuv_demand and not nt_active and has_nt_config:
+        elif tuv_demand and not nt_active and has_nt_config and not heating_request_active and not heating_cycle_active:
             system_recommended_action = "cekat_na_nt_s_tuv"
-        elif heating_demand_active:
+        elif heating_request_active or heating_cycle_active:
             system_recommended_action = "topit_zony"
         else:
             system_recommended_action = "nic"
@@ -399,6 +425,9 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             "nt_remaining_time": self.hass.states.get(entry_data.get("nt_remaining_time_sensor")).state
             if entry_data.get("nt_remaining_time_sensor") and self.hass.states.get(entry_data.get("nt_remaining_time_sensor"))
             else None,
+            "heating_demand_binary_sensor": self._get_heating_demand_binary_sensor(),
+            "tuv_current_temp_sensor": self._get_tuv_current_temp_sensor(),
+            "tuv_current_temp": effective_tuv_temp,
             "tuv_top_temp": tuv_top_temp,
             "tuv_bottom_temp": tuv_bottom_temp,
             "tuv_avg_temp": round(tuv_avg_temp, 2) if tuv_avg_temp is not None else None,
@@ -424,7 +453,9 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             "buffer_min_usable_temp": buffer_min_usable_temp,
             "buffer_ready_for_heating": buffer_ready_for_heating,
             "buffer_usable_energy_kwh": buffer_usable_energy_kwh,
-            "heating_demand_active": heating_demand_active,
+            "heating_request_active": heating_request_active,
+            "heating_demand_active": heating_request_active,
+            "heating_cycle_active": heating_cycle_active,
             "heating_requesting_zones": heating_requesting_zones,
             "heating_requesting_zone_count": len(heating_requesting_zones),
             "system_demand_state": system_demand_state,
