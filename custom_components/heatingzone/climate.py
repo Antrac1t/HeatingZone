@@ -117,8 +117,11 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
         )
 
         await self._async_control_zone()
-        await self._async_ensure_zone_circulation()
         await self._check_and_control_heat_source()
+        if self._should_suspend_circulation_for_tuv():
+            await self._async_suspend_zone_circulation_for_tuv()
+        else:
+            await self._async_ensure_zone_circulation()
         self.async_write_ha_state()
         
         _LOGGER.info("Zone %s: Control loop started (every %s)", 
@@ -206,6 +209,7 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
         attrs["tuv_mode_value"] = self._entry.data.get("tuv_mode_value", "")
         attrs["idle_mode_value"] = self._entry.data.get("idle_mode_value", "")
         attrs["control_heat_source"] = self._is_direct_heat_source_control_enabled()
+        attrs["suspend_circulation_during_tuv"] = self._entry.data.get("suspend_circulation_during_tuv", True)
         attrs["nt_active"] = self.coordinator.data.get("nt_active") if self.coordinator.data else None
         attrs["nt_remaining_time"] = self.coordinator.data.get("nt_remaining_time") if self.coordinator.data else None
         attrs["tuv_demand_binary_sensor"] = self.coordinator.data.get("tuv_demand_binary_sensor") if self.coordinator.data else self._entry.data.get("tuv_demand_binary_sensor")
@@ -257,6 +261,13 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
     def _is_tuv_priority_active(self) -> bool:
         """Return whether the shared system is currently prioritizing TUV heating."""
         return bool(self.coordinator.data and self.coordinator.data.get("tuv_should_heat"))
+
+    def _should_suspend_circulation_for_tuv(self) -> bool:
+        """Return whether circulation should be suspended while TUV has priority."""
+        return bool(
+            self._entry.data.get("suspend_circulation_during_tuv", True)
+            and self._is_tuv_priority_active()
+        )
 
     def _get_float_state(self, entity_id: str | None) -> float | None:
         """Return a numeric entity state when available."""
@@ -335,7 +346,7 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
         """Periodic control loop."""
         await self._async_control_zone()
         await self._check_and_control_heat_source()
-        if self._is_tuv_priority_active():
+        if self._should_suspend_circulation_for_tuv():
             await self._async_suspend_zone_circulation_for_tuv()
         else:
             await self._async_ensure_zone_circulation()
@@ -432,7 +443,7 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
             await asyncio.sleep(valve_open_time)
 
             circulation_pump = self._get_circulation_pump()
-            if circulation_pump and self._is_tuv_priority_active():
+            if circulation_pump and self._should_suspend_circulation_for_tuv():
                 _LOGGER.info(
                     "Zone %s: TUV has priority, keeping circulation pump %s OFF",
                     self._attr_name,
@@ -457,7 +468,7 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
         if not self._is_heating:
             return
 
-        if self._is_tuv_priority_active():
+        if self._should_suspend_circulation_for_tuv():
             return
 
         circulation_pump = self._get_circulation_pump()
