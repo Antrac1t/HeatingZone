@@ -12,6 +12,7 @@
             "tuv_mode_value": "Hodnota režimu ohřevu TUV (volitelné)",
           "idle_mode_value": "Hodnota klidového režimu (volitelné)",
           "control_heat_source": "Aktivně řídit TČ podle požadavků systému (TUV i topení)",
+          "suspend_circulation_during_tuv": "Při prioritě TUV vypnout oběhovku topení",
           "nt_binary_sensor": "Binární senzor nízkého tarifu (volitelné)",
           "nt_remaining_time_sensor": "Senzor času do změny tarifu (volitelné)",
           "heating_demand_binary_sensor": "Binární senzor požadavku na topení z TČ (volitelné)",
@@ -71,7 +72,8 @@
           "heating_mode_value": "Hodnota režimu topení",
           "tuv_mode_value": "Hodnota režimu ohřevu TUV (volitelné)",
           "idle_mode_value": "Hodnota klidového režimu (volitelné)",
-          "control_heat_source": "Aktivně řídit TČ podle požadavků systému (TUV i topení)"
+          "control_heat_source": "Aktivně řídit TČ podle požadavků systému (TUV i topení)",
+          "suspend_circulation_during_tuv": "Při prioritě TUV vypnout oběhovku topení"
         }
       },
       "edit_tariff": {
@@ -129,6 +131,7 @@
           "tuv_mode_value": "Hodnota režimu ohřevu TUV (volitelné)",
           "idle_mode_value": "Hodnota klidového režimu (volitelné)",
           "control_heat_source": "Aktivně řídit TČ podle požadavků systému (TUV i topení)",
+          "suspend_circulation_during_tuv": "Při prioritě TUV vypnout oběhovku topení",
           "nt_binary_sensor": "Binární senzor nízkého tarifu (volitelné)",
           "nt_remaining_time_sensor": "Senzor času do změny tarifu (volitelné)",
           "heating_demand_binary_sensor": "Binární senzor požadavku na topení z TČ (volitelné)",
