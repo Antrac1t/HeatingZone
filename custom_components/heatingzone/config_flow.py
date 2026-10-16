@@ -15,6 +15,7 @@ from .const import (
     DEFAULT_BUFFER_VOLUME_LITERS,
     DEFAULT_MIN_BUFFER_TOP_TEMP,
     DEFAULT_CONTROL_HEAT_SOURCE,
+    DEFAULT_SUSPEND_CIRCULATION_DURING_TUV,
     DEFAULT_HEATING_DEMAND_BINARY_SENSOR,
     DEFAULT_HYSTERESIS,
     DEFAULT_MAX_FLOOR_TEMP,
@@ -94,6 +95,15 @@ class HeatingZoneConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             vol.Optional(
                 "control_heat_source",
                 default=defaults.get("control_heat_source", DEFAULT_CONTROL_HEAT_SOURCE),
+            )
+        ] = bool
+        schema[
+            vol.Optional(
+                "suspend_circulation_during_tuv",
+                default=defaults.get(
+                    "suspend_circulation_during_tuv",
+                    DEFAULT_SUSPEND_CIRCULATION_DURING_TUV,
+                ),
             )
         ] = bool
         schema[_optional_entity_key(defaults, "nt_binary_sensor")] = selector.EntitySelector(
@@ -351,6 +361,13 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(
                     "control_heat_source",
                     default=defaults.get("control_heat_source", DEFAULT_CONTROL_HEAT_SOURCE),
+                ): bool,
+                vol.Optional(
+                    "suspend_circulation_during_tuv",
+                    default=defaults.get(
+                        "suspend_circulation_during_tuv",
+                        DEFAULT_SUSPEND_CIRCULATION_DURING_TUV,
+                    ),
                 ): bool,
             }
         )
