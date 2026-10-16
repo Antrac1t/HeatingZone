@@ -204,6 +204,14 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
 
         return bool(requesting_zones), requesting_zones
 
+    def _has_any_enabled_zone(self) -> bool:
+        """Return whether at least one configured heating zone is enabled."""
+        for zone in self.entry.options.get("zones", []):
+            zone_name = zone.get("name", "Neznama zona")
+            if self._is_zone_enabled(zone_name):
+                return True
+        return False
+
     async def _async_set_heat_mode(self, mode_value: str | None) -> None:
         """Set the heat source mode when configured."""
         heat_mode_entity = self._get_heat_mode_entity()
@@ -388,7 +396,10 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
         buffer_ready_for_heating = True
 
         heating_request_active, heating_requesting_zones = self._get_zone_heating_requests()
-        heating_cycle_active = bool(self._get_bool_state(self._get_heating_demand_binary_sensor()))
+        any_zone_enabled = self._has_any_enabled_zone()
+        heating_cycle_active = bool(
+            any_zone_enabled and self._get_bool_state(self._get_heating_demand_binary_sensor())
+        )
         tuv_control_temp = self._get_average_temperature(tuv_current_temp, tuv_top_temp)
         if tuv_control_temp is None:
             tuv_control_temp = tuv_current_temp
