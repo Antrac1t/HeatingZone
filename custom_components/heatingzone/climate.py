@@ -254,6 +254,10 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
         """Return whether room demand should switch the shared heat source."""
         return self._entry.data.get("control_heat_source", True)
 
+    def _is_tuv_priority_active(self) -> bool:
+        """Return whether the shared system is currently prioritizing TUV heating."""
+        return bool(self.coordinator.data and self.coordinator.data.get("tuv_should_heat"))
+
     def _get_float_state(self, entity_id: str | None) -> float | None:
         """Return a numeric entity state when available."""
         if not entity_id:
@@ -330,8 +334,11 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
     async def _async_control_loop(self, now=None) -> None:
         """Periodic control loop."""
         await self._async_control_zone()
-        await self._async_ensure_zone_circulation()
         await self._check_and_control_heat_source()
+        if self._is_tuv_priority_active():
+            await self._async_suspend_zone_circulation_for_tuv()
+        else:
+            await self._async_ensure_zone_circulation()
         if not self._is_heating:
             await self._async_sync_inactive_zone_outputs()
 
@@ -425,7 +432,13 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
             await asyncio.sleep(valve_open_time)
 
             circulation_pump = self._get_circulation_pump()
-            if circulation_pump and self._is_buffer_ready_for_circulation():
+            if circulation_pump and self._is_tuv_priority_active():
+                _LOGGER.info(
+                    "Zone %s: TUV has priority, keeping circulation pump %s OFF",
+                    self._attr_name,
+                    circulation_pump,
+                )
+            elif circulation_pump and self._is_buffer_ready_for_circulation():
                 _LOGGER.info("Zone %s: Turning ON circulation pump %s", self._attr_name, circulation_pump)
                 await self.hass.services.async_call(
                     "switch", "turn_on", {"entity_id": circulation_pump}, blocking=True
@@ -442,6 +455,9 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
     async def _async_ensure_zone_circulation(self) -> None:
         """Ensure an active zone can start its circulation pump once the buffer is ready."""
         if not self._is_heating:
+            return
+
+        if self._is_tuv_priority_active():
             return
 
         circulation_pump = self._get_circulation_pump()
@@ -462,6 +478,25 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
         )
         await self.hass.services.async_call(
             "switch", "turn_on", {"entity_id": circulation_pump}, blocking=True
+        )
+
+    async def _async_suspend_zone_circulation_for_tuv(self) -> None:
+        """Turn off the zone circulation pump while TUV heating has priority."""
+        circulation_pump = self._get_circulation_pump()
+        if not circulation_pump:
+            return
+
+        pump_state = self.hass.states.get(circulation_pump)
+        if not pump_state or pump_state.state != "on":
+            return
+
+        _LOGGER.info(
+            "Zone %s: TUV has priority, turning OFF circulation pump %s",
+            self._attr_name,
+            circulation_pump,
+        )
+        await self.hass.services.async_call(
+            "switch", "turn_off", {"entity_id": circulation_pump}, blocking=True
         )
 
     async def _async_turn_off_zone(self) -> None:
