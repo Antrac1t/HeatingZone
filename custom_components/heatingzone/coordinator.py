@@ -408,11 +408,16 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
         if tuv_control_temp is None:
             tuv_control_temp = tuv_bottom_temp
 
-        tuv_ready = bool(tuv_control_temp is not None and tuv_control_temp >= tuv_target_temp)
+        tuv_ready_temp = tuv_current_temp
+        if tuv_ready_temp is None:
+            tuv_ready_temp = tuv_control_temp
+
+        tuv_ready = bool(tuv_ready_temp is not None and tuv_ready_temp >= tuv_min_ready_temp)
         tuv_emergency = bool(tuv_control_temp is not None and tuv_control_temp < tuv_emergency_min_temp)
         hp_tuv_demand = self._get_bool_state(self._get_tuv_demand_binary_sensor())
         tuv_recharge_needed = bool(tuv_control_temp is not None and tuv_control_temp <= tuv_restart_temp)
-        tuv_demand = bool(tuv_recharge_needed or tuv_emergency)
+        tuv_nt_completion_needed = bool(nt_active and not tuv_ready)
+        tuv_demand = bool(tuv_recharge_needed or tuv_emergency or tuv_nt_completion_needed)
         has_nt_config = bool(nt_binary_sensor)
         tuv_cycle_active = bool(hp_tuv_demand)
         tuv_should_heat = bool(
@@ -450,6 +455,7 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             "tuv_current_temp_sensor": self._get_tuv_current_temp_sensor(),
             "tuv_current_temp": tuv_current_temp,
             "tuv_control_temp": round(tuv_control_temp, 2) if tuv_control_temp is not None else None,
+            "tuv_ready_temp": round(tuv_ready_temp, 2) if tuv_ready_temp is not None else None,
             "tuv_top_temp": tuv_top_temp,
             "tuv_bottom_temp": tuv_bottom_temp,
             "tuv_avg_temp": round(tuv_avg_temp, 2) if tuv_avg_temp is not None else None,
@@ -462,6 +468,7 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             "tuv_emergency": tuv_emergency,
             "tuv_demand": tuv_demand,
             "tuv_recharge_needed": tuv_recharge_needed,
+            "tuv_nt_completion_needed": tuv_nt_completion_needed,
             "tuv_cycle_active": tuv_cycle_active,
             "tuv_should_heat": tuv_should_heat,
             "tuv_demand_binary_sensor": self._get_tuv_demand_binary_sensor(),
