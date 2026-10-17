@@ -38,6 +38,7 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
         self.heat_source_lock = asyncio.Lock()
         self.last_heat_source_on = None
         self.last_heat_source_off = None
+        self._tuv_nt_completion_active = False
 
     def _get_heat_source_switch(self) -> str | None:
         """Return configured heat source switch with backward compatibility."""
@@ -416,7 +417,13 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
         tuv_emergency = bool(tuv_control_temp is not None and tuv_control_temp < tuv_emergency_min_temp)
         hp_tuv_demand = self._get_bool_state(self._get_tuv_demand_binary_sensor())
         tuv_recharge_needed = bool(tuv_control_temp is not None and tuv_control_temp <= tuv_restart_temp)
-        tuv_nt_completion_needed = bool(nt_active and not tuv_ready)
+
+        if not nt_active or tuv_ready:
+            self._tuv_nt_completion_active = False
+        elif tuv_recharge_needed or tuv_emergency or bool(hp_tuv_demand):
+            self._tuv_nt_completion_active = True
+
+        tuv_nt_completion_needed = bool(self._tuv_nt_completion_active and not tuv_ready)
         tuv_demand = bool(tuv_recharge_needed or tuv_emergency or tuv_nt_completion_needed)
         has_nt_config = bool(nt_binary_sensor)
         tuv_cycle_active = bool(hp_tuv_demand)
