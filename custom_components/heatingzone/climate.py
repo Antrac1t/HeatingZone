@@ -692,11 +692,8 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
             # Skip this zone
             if zone["name"] == self._zone_config["name"]:
                 continue
-            
-            # Create expected entity_id
-            safe_name = zone["name"].lower().replace(" ", "_").replace("-", "_")
-            zone_entity_id = f"climate.{safe_name}"
-            zone_state = self.hass.states.get(zone_entity_id)
+
+            zone_state = self.coordinator._get_zone_climate_state(zone["name"])
             
             if zone_state and zone_state.attributes.get("heating"):
                 # Check if this zone uses the valve
@@ -718,9 +715,7 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
             if zone["name"] == self._zone_config["name"]:
                 continue
 
-            safe_name = zone["name"].lower().replace(" ", "_").replace("-", "_")
-            zone_entity_id = f"climate.{safe_name}"
-            zone_state = self.hass.states.get(zone_entity_id)
+            zone_state = self.coordinator._get_zone_climate_state(zone["name"])
             if zone_state and zone_state.attributes.get("heating", False):
                 return True
 
@@ -737,9 +732,7 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
             if zone.get("circulation_pump") != circulation_pump:
                 continue
 
-            safe_name = zone["name"].lower().replace(" ", "_").replace("-", "_")
-            zone_entity_id = f"climate.{safe_name}"
-            zone_state = self.hass.states.get(zone_entity_id)
+            zone_state = self.coordinator._get_zone_climate_state(zone["name"])
             if zone_state and zone_state.attributes.get("heating", False):
                 return True
 
@@ -753,9 +746,7 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
         idle_zones = []
         
         for zone in all_zones:
-            safe_name = zone["name"].lower().replace(" ", "_").replace("-", "_")
-            zone_entity_id = f"climate.{safe_name}"
-            zone_state = self.hass.states.get(zone_entity_id)
+            zone_state = self.coordinator._get_zone_climate_state(zone["name"])
             
             if zone_state:
                 is_heating = zone_state.attributes.get("heating", False)
