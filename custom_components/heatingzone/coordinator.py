@@ -52,6 +52,21 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
         """Return whether shared heat source control is enabled."""
         return self.entry.data.get("control_heat_source", True)
 
+    def _get_fve_grid_switch(self) -> str | None:
+        """Return the optional switch indicating whether the heat pump runs from FVE or grid."""
+        return self.entry.data.get("fve_grid_switch")
+
+    def _is_fve_active(self) -> bool:
+        """Return whether the heat pump is currently supplied from FVE."""
+        fve_grid_switch = self._get_fve_grid_switch()
+        switch_state = self._get_bool_state(fve_grid_switch)
+        if switch_state is None:
+            return False
+
+        if self.entry.data.get("fve_active_when_on", True):
+            return bool(switch_state)
+        return not bool(switch_state)
+
     def _get_zone_climate_state(self, zone_name: str):
         """Return the matching climate state for a configured zone."""
         for state in self.hass.states.async_all("climate"):
@@ -350,6 +365,8 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
         nt_binary_sensor = entry_data.get("nt_binary_sensor")
         nt_state = self.hass.states.get(nt_binary_sensor) if nt_binary_sensor else None
         nt_active = bool(nt_state and nt_state.state == "on")
+        fve_active = self._is_fve_active()
+        low_cost_power_active = bool(nt_active or fve_active)
 
         tuv_current_temp = self._get_float_state(self._get_tuv_current_temp_sensor())
         tuv_top_temp = self._get_float_state(entry_data.get("tuv_top_temp_sensor"))
@@ -418,7 +435,7 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
         hp_tuv_demand = self._get_bool_state(self._get_tuv_demand_binary_sensor())
         tuv_recharge_needed = bool(tuv_control_temp is not None and tuv_control_temp <= tuv_restart_temp)
 
-        if not nt_active or tuv_ready:
+        if not low_cost_power_active or tuv_ready:
             self._tuv_nt_completion_active = False
         elif tuv_recharge_needed or tuv_emergency or bool(hp_tuv_demand):
             self._tuv_nt_completion_active = True
@@ -431,7 +448,7 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             tuv_cycle_active or (
                 tuv_demand and (
                 tuv_emergency
-                or nt_active
+                or low_cost_power_active
                 or not has_nt_config
                 )
             )
@@ -446,7 +463,7 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
 
         if tuv_should_heat:
             system_recommended_action = "ohrivat_tuv"
-        elif tuv_demand and not nt_active and has_nt_config and not heating_request_active and not heating_cycle_active:
+        elif tuv_demand and not low_cost_power_active and has_nt_config and not heating_request_active and not heating_cycle_active:
             system_recommended_action = "cekat_na_nt_s_tuv"
         elif heating_request_active or heating_cycle_active:
             system_recommended_action = "topit_zony"
@@ -455,6 +472,9 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
 
         data = {
             "nt_active": nt_active,
+            "fve_grid_switch": self._get_fve_grid_switch(),
+            "fve_active": fve_active,
+            "low_cost_power_active": low_cost_power_active,
             "nt_remaining_time": self.hass.states.get(entry_data.get("nt_remaining_time_sensor")).state
             if entry_data.get("nt_remaining_time_sensor") and self.hass.states.get(entry_data.get("nt_remaining_time_sensor"))
             else None,
