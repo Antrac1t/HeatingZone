@@ -15,6 +15,7 @@ from .const import (
     DEFAULT_BUFFER_VOLUME_LITERS,
     DEFAULT_MIN_BUFFER_TOP_TEMP,
     DEFAULT_CONTROL_HEAT_SOURCE,
+    DEFAULT_FVE_ACTIVE_WHEN_ON,
     DEFAULT_SUSPEND_CIRCULATION_DURING_TUV,
     DEFAULT_HEATING_DEMAND_BINARY_SENSOR,
     DEFAULT_HYSTERESIS,
@@ -112,6 +113,15 @@ class HeatingZoneConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema[_optional_entity_key(defaults, "nt_remaining_time_sensor")] = selector.EntitySelector(
             selector.EntitySelectorConfig(domain="sensor")
         )
+        schema[_optional_entity_key(defaults, "fve_grid_switch")] = selector.EntitySelector(
+            selector.EntitySelectorConfig(domain="switch")
+        )
+        schema[
+            vol.Optional(
+                "fve_active_when_on",
+                default=defaults.get("fve_active_when_on", DEFAULT_FVE_ACTIVE_WHEN_ON),
+            )
+        ] = bool
         schema[
             _optional_entity_key(
                 {**defaults, "heating_demand_binary_sensor": defaults.get("heating_demand_binary_sensor", DEFAULT_HEATING_DEMAND_BINARY_SENSOR)},
@@ -383,6 +393,13 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
                 _optional_entity_key(defaults, "nt_remaining_time_sensor"): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="sensor")
                 ),
+                _optional_entity_key(defaults, "fve_grid_switch"): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="switch")
+                ),
+                vol.Optional(
+                    "fve_active_when_on",
+                    default=defaults.get("fve_active_when_on", DEFAULT_FVE_ACTIVE_WHEN_ON),
+                ): bool,
             }
         )
 
