@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
+    DEFAULT_HEAT_LOSS_COEFFICIENT,
     DEFAULT_HEATING_DEMAND_BINARY_SENSOR,
     DEFAULT_TUV_CURRENT_TEMP_SENSOR,
     DEFAULT_TUV_DEMAND_BINARY_SENSOR,
@@ -73,6 +74,39 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             if state.attributes.get("zone_name") == zone_name:
                 return state
         return None
+
+    def _get_indoor_average_temp(self) -> tuple[float | None, dict[str, dict[str, float]]]:
+        """Return weighted average indoor temperature from configured room sensors."""
+        zone_temperatures: dict[str, dict[str, float]] = {}
+        weighted_sum = 0.0
+        total_area = 0.0
+
+        for zone in self.entry.options.get("zones", []):
+            zone_name = zone.get("name", "Neznama zona")
+            current_temp = self._get_float_state(zone.get("room_sensor"))
+            if current_temp is None:
+                continue
+            area_m2 = zone.get("area_m2", 1.0)
+            try:
+                area_weight = float(area_m2)
+            except (TypeError, ValueError):
+                area_weight = 1.0
+
+            if area_weight <= 0:
+                area_weight = 1.0
+
+            weighted_sum += current_temp * area_weight
+            total_area += area_weight
+            zone_temperatures[zone_name] = {
+                "temperature": round(current_temp, 2),
+                "area_m2": round(area_weight, 2),
+            }
+
+        if not zone_temperatures or total_area <= 0:
+            return None, {}
+
+        average_temp = weighted_sum / total_area
+        return average_temp, zone_temperatures
 
     def _get_float_state(self, entity_id: str | None) -> float | None:
         """Return a numeric entity state when available."""
@@ -145,6 +179,10 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             self.entry.data.get("tuv_temp_diff_entity"),
             DEFAULT_TUV_TEMP_DIFF_ENTITY,
         )
+
+    def _get_outdoor_temp_sensor(self) -> str | None:
+        """Return the configured outdoor temperature sensor."""
+        return self.entry.data.get("outdoor_temp_sensor")
 
     def _uses_heat_pump_tuv_demand(self) -> bool:
         """Return whether TUV demand should follow the heat pump entities."""
@@ -470,6 +508,22 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
         else:
             system_recommended_action = "nic"
 
+        indoor_average_temp, indoor_zone_temperatures = self._get_indoor_average_temp()
+        outdoor_temp_sensor = self._get_outdoor_temp_sensor()
+        outdoor_temp = self._get_float_state(outdoor_temp_sensor)
+        indoor_outdoor_delta = None
+        if indoor_average_temp is not None and outdoor_temp is not None:
+            indoor_outdoor_delta = indoor_average_temp - outdoor_temp
+
+        heat_loss_coefficient = float(
+            entry_data.get("heat_loss_coefficient", DEFAULT_HEAT_LOSS_COEFFICIENT)
+        )
+        estimated_heat_loss_kw = None
+        if indoor_outdoor_delta is not None:
+            estimated_heat_loss_kw = max(0.0, (heat_loss_coefficient * indoor_outdoor_delta) / 1000)
+
+        heat_loss_state = "topeni" if (heating_request_active or heating_cycle_active) else "netopeni"
+
         data = {
             "nt_active": nt_active,
             "fve_grid_switch": self._get_fve_grid_switch(),
@@ -511,6 +565,14 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             "buffer_min_usable_temp": buffer_min_usable_temp,
             "buffer_ready_for_heating": buffer_ready_for_heating,
             "buffer_usable_energy_kwh": buffer_usable_energy_kwh,
+            "indoor_average_temp": round(indoor_average_temp, 2) if indoor_average_temp is not None else None,
+            "indoor_zone_temperatures": indoor_zone_temperatures,
+            "outdoor_temp_sensor": outdoor_temp_sensor,
+            "outdoor_temp": outdoor_temp,
+            "indoor_outdoor_delta": round(indoor_outdoor_delta, 2) if indoor_outdoor_delta is not None else None,
+            "heat_loss_coefficient": round(heat_loss_coefficient, 2),
+            "estimated_heat_loss_kw": round(estimated_heat_loss_kw, 2) if estimated_heat_loss_kw is not None else None,
+            "heat_loss_state": heat_loss_state,
             "heating_request_active": heating_request_active,
             "heating_demand_active": heating_request_active,
             "heating_cycle_active": heating_cycle_active,
