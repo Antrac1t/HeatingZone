@@ -34,6 +34,8 @@ CONF_BUFFER_MID_TEMP_SENSOR = "buffer_mid_temp_sensor"
 CONF_BUFFER_BOTTOM_TEMP_SENSOR = "buffer_bottom_temp_sensor"
 CONF_BUFFER_VOLUME_LITERS = "buffer_volume_liters"
 CONF_BUFFER_MIN_USABLE_TEMP = "buffer_min_usable_temp"
+CONF_OUTDOOR_TEMP_SENSOR = "outdoor_temp_sensor"
+CONF_HEAT_LOSS_COEFFICIENT = "heat_loss_coefficient"
 CONF_MIN_BUFFER_TOP_TEMP = "min_buffer_top_temp"
 CONF_VALVE_OPEN_TIME = "valve_open_time"
 CONF_MIN_RUN_TIME = "min_run_time"
@@ -76,6 +78,7 @@ DEFAULT_TUV_MIN_READY_TEMP = 45.0
 DEFAULT_TUV_EMERGENCY_MIN_TEMP = 40.0
 DEFAULT_BUFFER_VOLUME_LITERS = 500
 DEFAULT_BUFFER_MIN_USABLE_TEMP = 30.0
+DEFAULT_HEAT_LOSS_COEFFICIENT = 225.8
 DEFAULT_MIN_BUFFER_TOP_TEMP = 0.0  # °C; 0 disables the buffer temperature check
 
 # Update interval
