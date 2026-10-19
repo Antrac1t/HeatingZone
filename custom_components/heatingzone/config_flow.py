@@ -16,6 +16,7 @@ from .const import (
     DEFAULT_MIN_BUFFER_TOP_TEMP,
     DEFAULT_CONTROL_HEAT_SOURCE,
     DEFAULT_FVE_ACTIVE_WHEN_ON,
+    DEFAULT_HEAT_LOSS_COEFFICIENT,
     DEFAULT_SUSPEND_CIRCULATION_DURING_TUV,
     DEFAULT_HEATING_DEMAND_BINARY_SENSOR,
     DEFAULT_HYSTERESIS,
@@ -233,6 +234,9 @@ class HeatingZoneConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema[_optional_entity_key(defaults, "buffer_bottom_temp_sensor")] = selector.EntitySelector(
             selector.EntitySelectorConfig(domain="sensor")
         )
+        schema[_optional_entity_key(defaults, "outdoor_temp_sensor")] = selector.EntitySelector(
+            selector.EntitySelectorConfig(domain="sensor")
+        )
         schema[
             vol.Optional(
                 "buffer_volume_liters",
@@ -258,6 +262,20 @@ class HeatingZoneConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 max=60,
                 step=0.5,
                 unit_of_measurement="°C",
+                mode=selector.NumberSelectorMode.BOX,
+            )
+        )
+        schema[
+            vol.Optional(
+                "heat_loss_coefficient",
+                default=defaults.get("heat_loss_coefficient", DEFAULT_HEAT_LOSS_COEFFICIENT),
+            )
+        ] = selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=50,
+                max=500,
+                step=0.1,
+                unit_of_measurement="W/K",
                 mode=selector.NumberSelectorMode.BOX,
             )
         )
@@ -509,6 +527,9 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
                 _optional_entity_key(defaults, "buffer_bottom_temp_sensor"): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="sensor")
                 ),
+                _optional_entity_key(defaults, "outdoor_temp_sensor"): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="sensor")
+                ),
                 vol.Optional(
                     "buffer_volume_liters",
                     default=defaults.get("buffer_volume_liters", DEFAULT_BUFFER_VOLUME_LITERS),
@@ -530,6 +551,18 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
                         max=60,
                         step=0.5,
                         unit_of_measurement="°C",
+                        mode=selector.NumberSelectorMode.BOX,
+                    )
+                ),
+                vol.Optional(
+                    "heat_loss_coefficient",
+                    default=defaults.get("heat_loss_coefficient", DEFAULT_HEAT_LOSS_COEFFICIENT),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=50,
+                        max=500,
+                        step=0.1,
+                        unit_of_measurement="W/K",
                         mode=selector.NumberSelectorMode.BOX,
                     )
                 ),
@@ -751,6 +784,18 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
                         description={"suggested_value": defaults.get("circulation_pump")}
                     ): selector.EntitySelector(
                         selector.EntitySelectorConfig(domain="switch")
+                    ),
+                    vol.Required(
+                        "area_m2",
+                        description={"suggested_value": defaults.get("area_m2", 1.0)}
+                    ): selector.NumberSelector(
+                        selector.NumberSelectorConfig(
+                            min=1,
+                            max=1000,
+                            step=0.1,
+                            unit_of_measurement="m²",
+                            mode=selector.NumberSelectorMode.BOX,
+                        )
                     ),
                     vol.Optional(
                         "target_temp",
