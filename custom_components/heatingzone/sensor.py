@@ -6,7 +6,7 @@ from typing import Any
 
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfEnergy, UnitOfTemperature
+from homeassistant.const import UnitOfEnergy, UnitOfPower, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -83,6 +83,41 @@ SENSORS: tuple[HeatingZoneSensorDescription, ...] = (
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
     ),
     HeatingZoneSensorDescription(
+        key="indoor_average_temp",
+        name="Prumerna vnitrni teplota",
+        value_key="indoor_average_temp",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+    ),
+    HeatingZoneSensorDescription(
+        key="outdoor_temp",
+        name="Venkovni teplota pro ztratu",
+        value_key="outdoor_temp",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+    ),
+    HeatingZoneSensorDescription(
+        key="indoor_outdoor_delta",
+        name="Rozdil vnitrni a venkovni teploty",
+        value_key="indoor_outdoor_delta",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+    ),
+    HeatingZoneSensorDescription(
+        key="heat_loss_coefficient",
+        name="Tepelna ztrata H",
+        value_key="heat_loss_coefficient",
+        native_unit_of_measurement="W/K",
+    ),
+    HeatingZoneSensorDescription(
+        key="estimated_heat_loss_kw",
+        name="Odhad tepelne ztraty",
+        value_key="estimated_heat_loss_kw",
+        native_unit_of_measurement=UnitOfPower.KILO_WATT,
+    ),
+    HeatingZoneSensorDescription(
+        key="heat_loss_state",
+        name="Stav vypoctu tepelne ztraty",
+        value_key="heat_loss_state",
+    ),
+    HeatingZoneSensorDescription(
         key="nt_remaining_time",
         name="NT zbyvajici cas",
         value_key="nt_remaining_time",
@@ -156,6 +191,10 @@ class HeatingZoneSystemSensor(CoordinatorEntity, SensorEntity):
             "buffer_top_temp_sensor": self._entry.data.get("buffer_top_temp_sensor"),
             "buffer_mid_temp_sensor": self._entry.data.get("buffer_mid_temp_sensor"),
             "buffer_bottom_temp_sensor": self._entry.data.get("buffer_bottom_temp_sensor"),
+            "outdoor_temp_sensor": self.coordinator.data.get("outdoor_temp_sensor"),
+            "indoor_zone_temperatures": self.coordinator.data.get("indoor_zone_temperatures", {}),
+            "heat_loss_coefficient": self.coordinator.data.get("heat_loss_coefficient"),
+            "heat_loss_state": self.coordinator.data.get("heat_loss_state"),
             "nt_binary_sensor": self._entry.data.get("nt_binary_sensor"),
             "nt_remaining_time_sensor": self._entry.data.get("nt_remaining_time_sensor"),
         }
