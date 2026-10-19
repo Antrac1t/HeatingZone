@@ -184,6 +184,62 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
         """Return the configured outdoor temperature sensor."""
         return self.entry.data.get("outdoor_temp_sensor")
 
+    def _get_weather_temperature(self) -> tuple[float | None, str | None]:
+        """Return temperature from the first weather entity that exposes one."""
+        for state in self.hass.states.async_all("weather"):
+            temperature = state.attributes.get("temperature")
+            try:
+                if temperature is not None:
+                    return float(temperature), state.entity_id
+            except (TypeError, ValueError):
+                continue
+        return None, None
+
+    def _get_auto_outdoor_temp_sensor(self) -> tuple[str | None, float | None]:
+        """Return an inferred outdoor temperature entity and its current value."""
+        keyword_pairs = (
+            ("venkov", "tepl"),
+            ("outdoor", "temp"),
+            ("external", "temp"),
+            ("outside", "temp"),
+        )
+
+        for state in self.hass.states.async_all("sensor"):
+            entity_id_lower = state.entity_id.lower()
+            friendly_name = str(state.attributes.get("friendly_name", "")).lower()
+            combined = f"{entity_id_lower} {friendly_name}"
+            if not any(all(keyword in combined for keyword in pair) for pair in keyword_pairs):
+                continue
+
+            if state.attributes.get("device_class") != "temperature":
+                continue
+
+            try:
+                return state.entity_id, float(state.state)
+            except (TypeError, ValueError):
+                continue
+
+        return None, None
+
+    def _resolve_outdoor_temperature(self) -> tuple[str | None, float | None, str]:
+        """Resolve outdoor temperature from configured or inferred sources."""
+        configured_sensor = self._get_outdoor_temp_sensor()
+        if configured_sensor:
+            configured_value = self._get_float_state(configured_sensor)
+            if configured_value is not None:
+                return configured_sensor, configured_value, "configured_sensor"
+            return configured_sensor, None, "configured_sensor_unavailable"
+
+        weather_temperature, weather_entity_id = self._get_weather_temperature()
+        if weather_temperature is not None:
+            return weather_entity_id, weather_temperature, "weather"
+
+        auto_sensor, auto_value = self._get_auto_outdoor_temp_sensor()
+        if auto_value is not None:
+            return auto_sensor, auto_value, "auto_sensor"
+
+        return None, None, "missing"
+
     def _uses_heat_pump_tuv_demand(self) -> bool:
         """Return whether TUV demand should follow the heat pump entities."""
         return self._get_tuv_demand_binary_sensor() is not None
@@ -509,8 +565,7 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             system_recommended_action = "nic"
 
         indoor_average_temp, indoor_zone_temperatures = self._get_indoor_average_temp()
-        outdoor_temp_sensor = self._get_outdoor_temp_sensor()
-        outdoor_temp = self._get_float_state(outdoor_temp_sensor)
+        outdoor_temp_sensor, outdoor_temp, outdoor_temp_source = self._resolve_outdoor_temperature()
         indoor_outdoor_delta = None
         if indoor_average_temp is not None and outdoor_temp is not None:
             indoor_outdoor_delta = indoor_average_temp - outdoor_temp
@@ -568,7 +623,8 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             "indoor_average_temp": round(indoor_average_temp, 2) if indoor_average_temp is not None else None,
             "indoor_zone_temperatures": indoor_zone_temperatures,
             "outdoor_temp_sensor": outdoor_temp_sensor,
-            "outdoor_temp": outdoor_temp,
+            "outdoor_temp_source": outdoor_temp_source,
+            "outdoor_temp": round(outdoor_temp, 2) if outdoor_temp is not None else None,
             "indoor_outdoor_delta": round(indoor_outdoor_delta, 2) if indoor_outdoor_delta is not None else None,
             "heat_loss_coefficient": round(heat_loss_coefficient, 2),
             "estimated_heat_loss_kw": round(estimated_heat_loss_kw, 2) if estimated_heat_loss_kw is not None else None,
