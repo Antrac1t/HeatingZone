@@ -31,8 +31,10 @@
           "buffer_top_temp_sensor": "Horní teplotní čidlo AN (volitelné)",
           "buffer_mid_temp_sensor": "Střední teplotní čidlo AN (volitelné)",
           "buffer_bottom_temp_sensor": "Dolní teplotní čidlo AN (volitelné)",
+          "outdoor_temp_sensor": "Venkovní teplotní čidlo pro výpočet ztráty (volitelné)",
           "buffer_volume_liters": "Objem AN (litry)",
           "buffer_min_usable_temp": "Referenční minimální teplota AN pro výpočet energie",
+          "heat_loss_coefficient": "Projektový součinitel tepelné ztráty H (W/K)",
           "valve_open_time": "Čas otevření ventilu (sekundy)",
           "min_run_time": "Minimální doba běhu (minuty)",
           "min_off_time": "Minimální doba vypnutí (minuty)"
@@ -112,8 +114,10 @@
           "buffer_top_temp_sensor": "Horní teplotní čidlo AN (volitelné)",
           "buffer_mid_temp_sensor": "Střední teplotní čidlo AN (volitelné)",
           "buffer_bottom_temp_sensor": "Dolní teplotní čidlo AN (volitelné)",
+          "outdoor_temp_sensor": "Venkovní teplotní čidlo pro výpočet ztráty (volitelné)",
           "buffer_volume_liters": "Objem AN (litry)",
-          "buffer_min_usable_temp": "Referenční minimální teplota AN pro výpočet energie"
+          "buffer_min_usable_temp": "Referenční minimální teplota AN pro výpočet energie",
+          "heat_loss_coefficient": "Projektový součinitel tepelné ztráty H (W/K)"
         }
       },
       "edit_timing": {
@@ -154,8 +158,10 @@
           "buffer_top_temp_sensor": "Horní teplotní čidlo AN (volitelné)",
           "buffer_mid_temp_sensor": "Střední teplotní čidlo AN (volitelné)",
           "buffer_bottom_temp_sensor": "Dolní teplotní čidlo AN (volitelné)",
+          "outdoor_temp_sensor": "Venkovní teplotní čidlo pro výpočet ztráty (volitelné)",
           "buffer_volume_liters": "Objem AN (litry)",
           "buffer_min_usable_temp": "Referenční minimální teplota AN pro výpočet energie",
+          "heat_loss_coefficient": "Projektový součinitel tepelné ztráty H (W/K)",
           "valve_open_time": "Čas otevření ventilu (sekundy)",
           "min_run_time": "Minimální doba běhu (minuty)",
           "min_off_time": "Minimální doba vypnutí (minuty)"
@@ -182,12 +188,14 @@
           "name": "Název zóny",
           "room_sensor": "Teplotní čidlo místnosti",
           "circulation_pump": "Oběhové čerpadlo pro tuto zónu (volitelné)",
+          "area_m2": "Plocha zóny (m²)",
           "target_temp": "Výchozí cílová teplota (C)"
         },
         "data_description": {
           "name": "Příklad: Obývák, ložnice, kancelář",
           "room_sensor": "Teplotní senzor pro tuto zónu",
           "circulation_pump": "Přiřaďte společnou oběhovku, která obsluhuje tuto skupinu místností",
+          "area_m2": "Použije se jako váha pro průměrnou vnitřní teplotu a odhad tepelné ztráty",
           "target_temp": "Počáteční cílová teplota (později lze změnit)"
         }
       },
