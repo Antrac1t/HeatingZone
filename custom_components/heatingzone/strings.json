@@ -210,8 +210,8 @@
           }
         },
         "zone_valves": {
-          "title": "Správa ventilů - {zone_name}",
-          "description": "Nakonfigurované ventily:\n{valve_list}\n\nKaždá zóna potřebuje alespoň jeden ventil.",
+          "title": "Správa ventilů",
+          "description": "Zóna: {zone_name}\n\nNakonfigurované ventily:\n{valve_list}\n\nKaždá zóna potřebuje alespoň jeden ventil.",
           "menu_options": {
             "add_valve": "Přidat ventil",
             "edit_valve": "Upravit ventil",
