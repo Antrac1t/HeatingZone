@@ -192,6 +192,7 @@ class HeatingZoneSystemSensor(CoordinatorEntity, SensorEntity):
             "buffer_mid_temp_sensor": self._entry.data.get("buffer_mid_temp_sensor"),
             "buffer_bottom_temp_sensor": self._entry.data.get("buffer_bottom_temp_sensor"),
             "outdoor_temp_sensor": self.coordinator.data.get("outdoor_temp_sensor"),
+            "outdoor_temp_source": self.coordinator.data.get("outdoor_temp_source"),
             "indoor_zone_temperatures": self.coordinator.data.get("indoor_zone_temperatures", {}),
             "heat_loss_coefficient": self.coordinator.data.get("heat_loss_coefficient"),
             "heat_loss_state": self.coordinator.data.get("heat_loss_state"),
