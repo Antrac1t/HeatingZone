@@ -538,15 +538,18 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
         tuv_demand = bool(tuv_recharge_needed or tuv_emergency or tuv_nt_completion_needed)
         has_nt_config = bool(nt_binary_sensor)
         tuv_cycle_active = bool(hp_tuv_demand)
-        tuv_should_heat = bool(
-            tuv_cycle_active or (
-                tuv_demand and (
-                tuv_emergency
-                or low_cost_power_active
-                or not has_nt_config
-                )
-            )
-        )
+
+        # Respect NT/FVE preference for TUV heating. Outside low-cost power,
+        # allow TUV heating only for emergency minimum temperature.
+        if has_nt_config:
+            if tuv_emergency:
+                tuv_should_heat = True
+            elif low_cost_power_active:
+                tuv_should_heat = bool(tuv_cycle_active or tuv_demand)
+            else:
+                tuv_should_heat = False
+        else:
+            tuv_should_heat = bool(tuv_cycle_active or tuv_demand)
 
         if tuv_should_heat:
             system_demand_state = "ohrev_tuv"
