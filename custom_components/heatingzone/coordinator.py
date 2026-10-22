@@ -9,11 +9,14 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.util import dt as dt_util
 
 from .const import (
     DEFAULT_HEAT_LOSS_COEFFICIENT,
     DEFAULT_HEATING_DEMAND_BINARY_SENSOR,
     DEFAULT_TUV_CURRENT_TEMP_SENSOR,
+    DEFAULT_TUV_DAY_END_HOUR,
+    DEFAULT_TUV_DAY_START_HOUR,
     DEFAULT_TUV_DEMAND_BINARY_SENSOR,
     DEFAULT_TUV_SETPOINT_ENTITY,
     DEFAULT_TUV_TARGET_TEMP,
@@ -538,18 +541,24 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
         tuv_demand = bool(tuv_recharge_needed or tuv_emergency or tuv_nt_completion_needed)
         has_nt_config = bool(nt_binary_sensor)
         tuv_cycle_active = bool(hp_tuv_demand)
-
-        # Respect NT/FVE preference for TUV heating. Outside low-cost power,
-        # allow TUV heating only for emergency minimum temperature.
-        if has_nt_config:
-            if tuv_emergency:
-                tuv_should_heat = True
-            elif low_cost_power_active:
-                tuv_should_heat = bool(tuv_cycle_active or tuv_demand)
-            else:
-                tuv_should_heat = False
+        tuv_day_start_hour = int(entry_data.get("tuv_day_start_hour", DEFAULT_TUV_DAY_START_HOUR))
+        tuv_day_end_hour = int(entry_data.get("tuv_day_end_hour", DEFAULT_TUV_DAY_END_HOUR))
+        current_hour = dt_util.now().hour
+        if tuv_day_start_hour < tuv_day_end_hour:
+            tuv_daytime = tuv_day_start_hour <= current_hour < tuv_day_end_hour
         else:
+            tuv_daytime = current_hour >= tuv_day_start_hour or current_hour < tuv_day_end_hour
+
+        # Routine TUV heating is allowed only in the configured daytime window.
+        # Emergency minimum temperature overrides both time and tariff limits.
+        if tuv_emergency:
+            tuv_should_heat = True
+        elif tuv_daytime and has_nt_config:
+            tuv_should_heat = bool(low_cost_power_active and (tuv_cycle_active or tuv_demand))
+        elif tuv_daytime:
             tuv_should_heat = bool(tuv_cycle_active or tuv_demand)
+        else:
+            tuv_should_heat = False
 
         if tuv_should_heat:
             system_demand_state = "ohrev_tuv"
@@ -603,6 +612,10 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             "tuv_temp_diff": tuv_temp_diff,
             "tuv_restart_temp": round(tuv_restart_temp, 2),
             "tuv_emergency_min_temp": tuv_emergency_min_temp,
+            "tuv_daytime": tuv_daytime,
+            "tuv_day_start_hour": tuv_day_start_hour,
+            "tuv_day_end_hour": tuv_day_end_hour,
+            "tuv_night_blocked": bool(not tuv_daytime and not tuv_emergency and tuv_demand),
             "tuv_ready": tuv_ready,
             "tuv_emergency": tuv_emergency,
             "tuv_demand": tuv_demand,
