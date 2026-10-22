@@ -196,6 +196,10 @@ class HeatingZoneSystemSensor(CoordinatorEntity, SensorEntity):
             "indoor_zone_temperatures": self.coordinator.data.get("indoor_zone_temperatures", {}),
             "heat_loss_coefficient": self.coordinator.data.get("heat_loss_coefficient"),
             "heat_loss_state": self.coordinator.data.get("heat_loss_state"),
+            "tuv_daytime": self.coordinator.data.get("tuv_daytime"),
+            "tuv_day_start_hour": self.coordinator.data.get("tuv_day_start_hour"),
+            "tuv_day_end_hour": self.coordinator.data.get("tuv_day_end_hour"),
+            "tuv_night_blocked": self.coordinator.data.get("tuv_night_blocked"),
             "nt_binary_sensor": self._entry.data.get("nt_binary_sensor"),
             "nt_remaining_time_sensor": self._entry.data.get("nt_remaining_time_sensor"),
         }
