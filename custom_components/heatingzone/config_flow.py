@@ -26,6 +26,8 @@ from .const import (
     DEFAULT_NAME,
     DEFAULT_TARGET_TEMP,
     DEFAULT_TUV_CURRENT_TEMP_SENSOR,
+    DEFAULT_TUV_DAY_END_HOUR,
+    DEFAULT_TUV_DAY_START_HOUR,
     DEFAULT_TUV_DEMAND_BINARY_SENSOR,
     DEFAULT_TUV_EMERGENCY_MIN_TEMP,
     DEFAULT_TUV_MIN_READY_TEMP,
@@ -224,6 +226,22 @@ class HeatingZoneConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 unit_of_measurement="°C",
                 mode=selector.NumberSelectorMode.BOX,
             )
+        )
+        schema[
+            vol.Optional(
+                "tuv_day_start_hour",
+                default=defaults.get("tuv_day_start_hour", DEFAULT_TUV_DAY_START_HOUR),
+            )
+        ] = selector.NumberSelector(
+            selector.NumberSelectorConfig(min=0, max=23, step=1, mode=selector.NumberSelectorMode.BOX)
+        )
+        schema[
+            vol.Optional(
+                "tuv_day_end_hour",
+                default=defaults.get("tuv_day_end_hour", DEFAULT_TUV_DAY_END_HOUR),
+            )
+        ] = selector.NumberSelector(
+            selector.NumberSelectorConfig(min=0, max=23, step=1, mode=selector.NumberSelectorMode.BOX)
         )
         schema[_optional_entity_key(defaults, "buffer_top_temp_sensor")] = selector.EntitySelector(
             selector.EntitySelectorConfig(domain="sensor")
@@ -509,6 +527,18 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
                         unit_of_measurement="°C",
                         mode=selector.NumberSelectorMode.BOX,
                     )
+                ),
+                vol.Optional(
+                    "tuv_day_start_hour",
+                    default=defaults.get("tuv_day_start_hour", DEFAULT_TUV_DAY_START_HOUR),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(min=0, max=23, step=1, mode=selector.NumberSelectorMode.BOX)
+                ),
+                vol.Optional(
+                    "tuv_day_end_hour",
+                    default=defaults.get("tuv_day_end_hour", DEFAULT_TUV_DAY_END_HOUR),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(min=0, max=23, step=1, mode=selector.NumberSelectorMode.BOX)
                 ),
             }
         )
