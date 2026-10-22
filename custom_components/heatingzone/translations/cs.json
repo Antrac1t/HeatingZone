@@ -28,6 +28,8 @@
           "tuv_target_temp": "Cílová teplota TUV",
           "tuv_min_ready_temp": "Teplota TUV připravená k použití",
           "tuv_emergency_min_temp": "Nouzové minimum TUV",
+          "tuv_day_start_hour": "Začátek denního okna pro běžný ohřev TUV (hodina)",
+          "tuv_day_end_hour": "Konec denního okna pro běžný ohřev TUV (hodina)",
           "buffer_top_temp_sensor": "Horní teplotní čidlo AN (volitelné)",
           "buffer_mid_temp_sensor": "Střední teplotní čidlo AN (volitelné)",
           "buffer_bottom_temp_sensor": "Dolní teplotní čidlo AN (volitelné)",
@@ -104,7 +106,9 @@
           "tuv_volume_liters": "Objem TUV (litry)",
           "tuv_target_temp": "Cílová teplota TUV",
           "tuv_min_ready_temp": "Teplota TUV připravená k použití",
-          "tuv_emergency_min_temp": "Nouzové minimum TUV"
+          "tuv_emergency_min_temp": "Nouzové minimum TUV",
+          "tuv_day_start_hour": "Začátek denního okna pro běžný ohřev TUV (hodina)",
+          "tuv_day_end_hour": "Konec denního okna pro běžný ohřev TUV (hodina)"
         }
       },
       "edit_buffer": {
