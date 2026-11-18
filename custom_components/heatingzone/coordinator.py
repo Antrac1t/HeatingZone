@@ -317,12 +317,24 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
 
         return bool(requesting_zones), requesting_zones
 
-    def _has_any_enabled_zone(self) -> bool:
-        """Return whether at least one configured heating zone is enabled."""
+    def _has_any_active_heating_zone(self) -> bool:
+        """Return whether a configured zone is actively heating or its valve is open."""
         for zone in self.entry.options.get("zones", []):
             zone_name = zone.get("name", "Neznama zona")
-            if self._is_zone_enabled(zone_name):
+            climate_state = self._get_zone_climate_state(zone_name)
+            if climate_state is None or climate_state.state == "off":
+                continue
+
+            attributes = climate_state.attributes
+            if attributes.get("heating") or attributes.get("hvac_action") == "heating":
                 return True
+
+            valve_states = attributes.get("valve_states", {})
+            if isinstance(valve_states, dict) and any(
+                str(valve_state).lower() == "on" for valve_state in valve_states.values()
+            ):
+                return True
+
         return False
 
     async def _async_set_heat_mode(self, mode_value: str | None) -> None:
@@ -511,9 +523,10 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
         buffer_ready_for_heating = True
 
         heating_request_active, heating_requesting_zones = self._get_zone_heating_requests()
-        any_zone_enabled = self._has_any_enabled_zone()
+        any_zone_actively_heating = self._has_any_active_heating_zone()
         heating_cycle_active = bool(
-            any_zone_enabled and self._get_bool_state(self._get_heating_demand_binary_sensor())
+            any_zone_actively_heating
+            and self._get_bool_state(self._get_heating_demand_binary_sensor())
         )
         tuv_control_temp = self._get_average_temperature(tuv_current_temp, tuv_top_temp)
         if tuv_control_temp is None:
