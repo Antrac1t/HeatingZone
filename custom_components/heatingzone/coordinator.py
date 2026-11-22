@@ -50,6 +50,7 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
         self._boost_generation = 0
         self._boost_prepare_task = None
         self.zone_entities: dict[str, Any] = {}
+        self._boost_previous_zone_states: dict[str, tuple[Any, bool]] = {}
 
     @property
     def boost_active(self) -> bool:
@@ -58,7 +59,13 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
 
     def register_zone_entity(self, entity: Any) -> None:
         """Register a climate zone so boost can immediately update its outputs."""
-        self.zone_entities[entity._zone_config["name"]] = entity
+        zone_name = entity._zone_config["name"]
+        self.zone_entities[zone_name] = entity
+        if self.boost_active and zone_name not in self._boost_previous_zone_states:
+            self._boost_previous_zone_states[zone_name] = (
+                entity._hvac_mode,
+                entity._is_heating,
+            )
 
     def unregister_zone_entity(self, entity: Any) -> None:
         """Remove a climate zone from boost coordination."""
@@ -103,6 +110,11 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
 
         boost_was_active = self.boost_active
         self._cancel_boost_timer()
+        if not boost_was_active:
+            self._boost_previous_zone_states = {
+                zone_name: (entity._hvac_mode, entity._is_heating)
+                for zone_name, entity in self.zone_entities.items()
+            }
         self._boost_until = dt_util.utcnow() + timedelta(minutes=duration_minutes)
         generation = self._boost_generation
         self._boost_timer_cancel = async_call_later(
@@ -124,6 +136,7 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
         self._boost_ready = False
         await self._apply_boost_state_to_zones()
         self._cancel_boost_preparation()
+        self._boost_previous_zone_states.clear()
         await self.async_request_refresh()
 
     async def _async_prepare_boost(self) -> None:
@@ -167,6 +180,7 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
         """Wait for zone outputs to return to thermostat control after expiry."""
         await self._apply_boost_state_to_zones()
         self._cancel_boost_preparation()
+        self._boost_previous_zone_states.clear()
         await self.async_request_refresh()
 
     @callback
@@ -176,6 +190,7 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
         self._cancel_boost_preparation()
         self._boost_until = None
         self._boost_ready = False
+        self._boost_previous_zone_states.clear()
 
     def _get_heat_source_switch(self) -> str | None:
         """Return configured heat source switch with backward compatibility."""
