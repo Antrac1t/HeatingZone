@@ -765,6 +765,13 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             estimated_heat_loss_kw = max(0.0, (heat_loss_coefficient * indoor_outdoor_delta) / 1000)
 
         heat_loss_state = "topeni" if (heating_request_active or heating_cycle_active) else "netopeni"
+        boost_remaining_minutes = 0
+        if self.boost_active and self._boost_until:
+            remaining_seconds = max(
+                0,
+                (self._boost_until - dt_util.utcnow()).total_seconds(),
+            )
+            boost_remaining_minutes = int((remaining_seconds + 59) // 60)
 
         data = {
             "nt_active": nt_active,
@@ -827,6 +834,7 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             "boost_active": boost_active,
             "boost_ready": self._boost_ready,
             "boost_until": self._boost_until.isoformat() if self.boost_active else None,
+            "boost_remaining_minutes": boost_remaining_minutes,
             "heating_requesting_zones": heating_requesting_zones,
             "heating_requesting_zone_count": len(heating_requesting_zones),
             "system_demand_state": system_demand_state,
