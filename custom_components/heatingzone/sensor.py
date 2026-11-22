@@ -181,6 +181,8 @@ class HeatingZoneSystemSensor(CoordinatorEntity, SensorEntity):
         """Return diagnostic context for the system sensor."""
         return {
             "system_name": self._entry.title,
+            "boost_active": self.coordinator.data.get("boost_active"),
+            "boost_until": self.coordinator.data.get("boost_until"),
             "heating_requesting_zones": self.coordinator.data.get("heating_requesting_zones", []),
             "heating_demand_binary_sensor": self.coordinator.data.get("heating_demand_binary_sensor"),
             "tuv_demand_binary_sensor": self.coordinator.data.get("tuv_demand_binary_sensor"),
