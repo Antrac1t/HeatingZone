@@ -81,6 +81,11 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
         self._target_temperature = zone_config.get("target_temp", 21.0)
         self._hvac_mode = HVACMode.OFF
         self._is_heating = False
+        self._boost_control_active = False
+        self._boost_previous_heating = False
+        self._boost_restore_pending = False
+        self._zone_activation_generation = 0
+        self._zone_valve_opening = False
         self._control_task = None
         
         _LOGGER.info(
@@ -93,6 +98,7 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
     async def async_added_to_hass(self) -> None:
         """Run when entity about to be added to hass."""
         await super().async_added_to_hass()
+        self.coordinator.register_zone_entity(self)
 
         last_state = await self.async_get_last_state()
         if last_state:
@@ -129,6 +135,7 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
 
     async def async_will_remove_from_hass(self) -> None:
         """Run when entity will be removed from hass."""
+        self.coordinator.unregister_zone_entity(self)
         if self._control_task:
             self._control_task()
             _LOGGER.info("Zone %s: Control loop stopped", self._attr_name)
@@ -158,11 +165,11 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
     @property
     def hvac_action(self) -> HVACAction:
         """Return current HVAC action."""
-        if self._hvac_mode == HVACMode.OFF:
-            return HVACAction.OFF
-        
         if self._is_heating:
             return HVACAction.HEATING
+
+        if self._hvac_mode == HVACMode.OFF:
+            return HVACAction.OFF
         
         return HVACAction.IDLE
 
@@ -174,6 +181,7 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
             "hysteresis": self._zone_config.get("hysteresis", 0.5),
             "valves_count": len(self._zone_config.get("valves", [])),
             "heating": self._is_heating,
+            "boost_active": self.coordinator.boost_active,
             "current_temp": self.current_temperature,
             "target_temp": self._target_temperature,
         }
@@ -355,42 +363,62 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
 
     async def _async_control_zone(self) -> None:
         """Control heating for this zone."""
-        if self._hvac_mode == HVACMode.OFF:
+        boost_active = self.coordinator.boost_active
+        if boost_active and not self._boost_control_active:
+            self._boost_previous_heating = self._is_heating
+            self._boost_control_active = True
+
+        boost_just_ended = not boost_active and self._boost_control_active
+        if boost_just_ended:
+            self._boost_control_active = False
+            self._boost_restore_pending = True
+
+        if self._hvac_mode == HVACMode.OFF and not boost_active:
             if self._is_heating:
                 _LOGGER.info("Zone %s: Turning OFF (HVAC mode OFF)", self._attr_name)
                 # Set flag BEFORE calling turn_off to avoid race condition
                 self._is_heating = False
                 await self._async_turn_off_zone()
+            self._boost_restore_pending = False
             return
 
-        current_temp = self.current_temperature
-        if current_temp is None:
-            _LOGGER.warning("Zone %s: No temperature reading from %s", 
-                          self._attr_name, self._zone_config["room_sensor"])
-            return
-
-        hysteresis = self._zone_config.get("hysteresis", 0.5)
-        target = self._target_temperature
-        
-        # Hysteresis control logic
-        should_heat = False
-        
-        if not self._is_heating:
-            # Start heating if below target - hysteresis
-            if current_temp < target - hysteresis:
-                should_heat = True
+        if boost_active:
+            # Boost intentionally ignores room temperature and thermostat HVAC mode.
+            should_heat = True
+            current_temp = self.current_temperature
+            target = self._target_temperature
+            hysteresis = self._zone_config.get("hysteresis", 0.5)
         else:
-            # Continue heating until above target + hysteresis
-            if current_temp < target + hysteresis:
-                should_heat = True
+            current_temp = self.current_temperature
+            if current_temp is None:
+                _LOGGER.warning("Zone %s: No temperature reading from %s", 
+                              self._attr_name, self._zone_config["room_sensor"])
+                return
+
+            hysteresis = self._zone_config.get("hysteresis", 0.5)
+            target = self._target_temperature
+            # At boost end, resume normal thermostat hysteresis from the pre-boost state.
+            was_heating = (
+                self._boost_previous_heating
+                if self._boost_restore_pending
+                else self._is_heating
+            )
+            self._boost_restore_pending = False
+            should_heat = current_temp < (
+                target + hysteresis if was_heating else target - hysteresis
+            )
         
         # Apply control
         if should_heat and not self._is_heating:
-            _LOGGER.info(
-                "Zone %s: START heating (%.1f°C < %.1f°C - %.1f)",
-                self._attr_name, current_temp, target, hysteresis
-            )
+            if boost_active:
+                _LOGGER.info("Zone %s: START heating (timed boost)", self._attr_name)
+            else:
+                _LOGGER.info(
+                    "Zone %s: START heating (%.1f°C < %.1f°C - %.1f)",
+                    self._attr_name, current_temp, target, hysteresis
+                )
             self._is_heating = True
+            self.async_write_ha_state()
             await self._async_turn_on_zone()
             self.async_write_ha_state()
         elif not should_heat and self._is_heating:
@@ -405,7 +433,9 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
 
     async def _async_turn_on_zone(self) -> None:
         """Turn on heating for this zone."""
+        activation_generation = self._zone_activation_generation
         valves_opened = False
+        self._zone_valve_opening = True
 
         # Turn on valves (check floor temp limits)
         for idx, valve_config in enumerate(self._zone_config.get("valves", [])):
@@ -441,6 +471,18 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
                 valve_open_time,
             )
             await asyncio.sleep(valve_open_time)
+            self._zone_valve_opening = False
+
+            if (
+                activation_generation != self._zone_activation_generation
+                or not self._is_heating
+                or (self._hvac_mode == HVACMode.OFF and not self.coordinator.boost_active)
+            ):
+                _LOGGER.debug(
+                    "Zone %s: Cancelled stale valve-open wait before circulation",
+                    self._attr_name,
+                )
+                return
 
             circulation_pump = self._get_circulation_pump()
             if circulation_pump and self._should_suspend_circulation_for_tuv():
@@ -460,12 +502,14 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
                     self._attr_name,
                     circulation_pump,
                 )
+        else:
+            self._zone_valve_opening = False
 
         await self._check_and_control_heat_source()
 
     async def _async_ensure_zone_circulation(self) -> None:
         """Ensure an active zone can start its circulation pump once the buffer is ready."""
-        if not self._is_heating:
+        if not self._is_heating or self._zone_valve_opening:
             return
 
         if self._should_suspend_circulation_for_tuv():
@@ -512,21 +556,13 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
 
     async def _async_turn_off_zone(self) -> None:
         """Turn off heating for this zone."""
+        self._zone_activation_generation += 1
+        self._zone_valve_opening = False
         _LOGGER.info("Zone %s: 🛑 Turning off zone heating", self._attr_name)
 
         any_other_zone_heating = await self._is_any_other_zone_heating()
         if not any_other_zone_heating:
             await self._check_and_control_heat_source()
-
-        heat_source_switch = self._get_heat_source_switch()
-        heat_source_state = self.hass.states.get(heat_source_switch) if heat_source_switch else None
-        heat_source_is_on = bool(heat_source_state and heat_source_state.state == "on")
-        should_defer_zone_shutdown = (
-            self._is_direct_heat_source_control_enabled()
-            and not self._uses_buffer_tank()
-            and heat_source_is_on
-            and not any_other_zone_heating
-        )
         
         # Turn off valves first
         for valve_config in self._zone_config.get("valves", []):
@@ -540,21 +576,13 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
                 )
                 continue
 
-            if should_defer_zone_shutdown:
-                _LOGGER.info(
-                    "Zone %s: Heat source still ON, deferring valve close for %s",
-                    self._attr_name,
-                    valve_switch,
-                )
-                continue
-            
             _LOGGER.info("Zone %s: ❌ Turning OFF valve %s", self._attr_name, valve_switch)
             await self.hass.services.async_call(
                 "switch", "turn_off", {"entity_id": valve_switch}, blocking=True
             )
 
         circulation_pump = self._get_circulation_pump()
-        if circulation_pump and not should_defer_zone_shutdown:
+        if circulation_pump:
             if not await self._is_pump_needed_by_other_zone(circulation_pump):
                 _LOGGER.info("Zone %s: Turning OFF circulation pump %s", self._attr_name, circulation_pump)
                 await self.hass.services.async_call(
@@ -565,16 +593,6 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
 
     async def _async_sync_inactive_zone_outputs(self) -> None:
         """Ensure inactive zones do not leave valves or pumps running."""
-        heat_source_switch = self._get_heat_source_switch()
-        heat_source_state = self.hass.states.get(heat_source_switch) if heat_source_switch else None
-        if (
-            self._is_direct_heat_source_control_enabled()
-            and not self._uses_buffer_tank()
-            and heat_source_state
-            and heat_source_state.state == "on"
-        ):
-            return
-
         for valve_config in self._zone_config.get("valves", []):
             valve_switch = valve_config["valve"]
             if await self._is_valve_needed_by_other_zone(valve_switch):
@@ -583,7 +601,7 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
             valve_state = self.hass.states.get(valve_switch)
             if valve_state and valve_state.state == "on":
                 _LOGGER.info(
-                    "Zone %s: Deferred OFF for valve %s after heat source stop",
+                    "Zone %s: Turning OFF inactive valve %s",
                     self._attr_name,
                     valve_switch,
                 )
@@ -596,7 +614,7 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
             pump_state = self.hass.states.get(circulation_pump)
             if pump_state and pump_state.state == "on":
                 _LOGGER.info(
-                    "Zone %s: Deferred OFF for circulation pump %s after heat source stop",
+                    "Zone %s: Turning OFF inactive circulation pump %s",
                     self._attr_name,
                     circulation_pump,
                 )
@@ -775,3 +793,12 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         self.async_write_ha_state()
+
+    async def async_apply_boost_state(self) -> bool:
+        """Apply the current boost state and report whether a valve is open."""
+        await self._async_control_zone()
+        self.async_write_ha_state()
+        return any(
+            (state := self.hass.states.get(valve["valve"])) and state.state == "on"
+            for valve in self._zone_config.get("valves", [])
+        )
