@@ -7,7 +7,8 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
@@ -43,6 +44,138 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
         self.last_heat_source_on = None
         self.last_heat_source_off = None
         self._tuv_nt_completion_active = False
+        self._boost_until = None
+        self._boost_ready = False
+        self._boost_timer_cancel = None
+        self._boost_generation = 0
+        self._boost_prepare_task = None
+        self.zone_entities: dict[str, Any] = {}
+
+    @property
+    def boost_active(self) -> bool:
+        """Return whether the timed all-zone boost is currently active."""
+        return bool(self._boost_until and dt_util.utcnow() < self._boost_until)
+
+    def register_zone_entity(self, entity: Any) -> None:
+        """Register a climate zone so boost can immediately update its outputs."""
+        self.zone_entities[entity._zone_config["name"]] = entity
+
+    def unregister_zone_entity(self, entity: Any) -> None:
+        """Remove a climate zone from boost coordination."""
+        zone_name = entity._zone_config["name"]
+        if self.zone_entities.get(zone_name) is entity:
+            self.zone_entities.pop(zone_name, None)
+
+    def _cancel_boost_timer(self) -> None:
+        """Cancel the current boost expiration callback, if any."""
+        self._boost_generation += 1
+        if self._boost_timer_cancel:
+            self._boost_timer_cancel()
+            self._boost_timer_cancel = None
+
+    def _cancel_boost_preparation(self) -> None:
+        """Cancel an unfinished valve-opening preparation task."""
+        task = self._boost_prepare_task
+        self._boost_prepare_task = None
+        if task and not task.done() and task is not asyncio.current_task():
+            task.cancel()
+
+    async def _apply_boost_state_to_zones(self) -> None:
+        """Apply boost state to every loaded climate zone and wait for its outputs."""
+        entities = tuple(self.zone_entities.values())
+        if entities:
+            results = await asyncio.gather(
+                *(entity.async_apply_boost_state() for entity in entities),
+                return_exceptions=True,
+            )
+            for entity, result in zip(entities, results):
+                if isinstance(result, Exception):
+                    _LOGGER.error(
+                        "Failed to apply boost state to zone %s: %s",
+                        entity._zone_config.get("name"),
+                        result,
+                    )
+
+    async def async_start_boost(self, duration_minutes: int) -> None:
+        """Start (or extend) a boost for every zone for the requested duration."""
+        if not 1 <= duration_minutes <= 720:
+            raise ValueError("Boost duration must be between 1 and 720 minutes")
+
+        boost_was_active = self.boost_active
+        self._cancel_boost_timer()
+        self._boost_until = dt_util.utcnow() + timedelta(minutes=duration_minutes)
+        generation = self._boost_generation
+        self._boost_timer_cancel = async_call_later(
+            self.hass,
+            duration_minutes * 60,
+            lambda now: self._async_expire_boost(now, generation),
+        )
+        if not boost_was_active:
+            self._boost_ready = False
+            self._boost_prepare_task = self.hass.async_create_task(self._async_prepare_boost())
+        # Publish boost demand, but the heat source remains held until valve opening
+        # delays have completed and at least one configured valve is actually on.
+        await self.async_request_refresh()
+
+    async def async_stop_boost(self) -> None:
+        """Stop the boost and return each zone to its saved thermostat mode."""
+        self._cancel_boost_timer()
+        self._boost_until = None
+        self._boost_ready = False
+        await self._apply_boost_state_to_zones()
+        self._cancel_boost_preparation()
+        await self.async_request_refresh()
+
+    async def _async_prepare_boost(self) -> None:
+        """Open zone valves and start eligible circulation pumps before heat demand."""
+        entities = tuple(self.zone_entities.values())
+        if not entities:
+            return
+
+        results = await asyncio.gather(
+            *(entity.async_apply_boost_state() for entity in entities),
+            return_exceptions=True,
+        )
+        boost_has_open_zone = False
+        for entity, result in zip(entities, results):
+            if isinstance(result, Exception):
+                _LOGGER.error(
+                    "Boost preparation failed for zone %s: %s",
+                    entity._zone_config.get("name"),
+                    result,
+                )
+            elif result:
+                boost_has_open_zone = True
+
+        if not self.boost_active:
+            return
+
+        self._boost_ready = boost_has_open_zone
+        await self.async_request_refresh()
+
+    @callback
+    def _async_expire_boost(self, _now, generation: int) -> None:
+        """Expire boost and asynchronously restore normal zone control."""
+        if generation != self._boost_generation:
+            return
+        self._boost_timer_cancel = None
+        self._boost_until = None
+        self._boost_ready = False
+        self.hass.async_create_task(self._async_finish_boost_expiry())
+
+    async def _async_finish_boost_expiry(self) -> None:
+        """Wait for zone outputs to return to thermostat control after expiry."""
+        await self._apply_boost_state_to_zones()
+        self._cancel_boost_preparation()
+        await self.async_request_refresh()
+
+    @callback
+    def async_shutdown(self) -> None:
+        """Cancel boost timers when this config entry unloads."""
+        self._cancel_boost_timer()
+        self._cancel_boost_preparation()
+        self._boost_until = None
+        self._boost_ready = False
 
     def _get_heat_source_switch(self) -> str | None:
         """Return configured heat source switch with backward compatibility."""
@@ -291,6 +424,12 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             climate_state = self._get_zone_climate_state(zone_name)
             if climate_state is not None and climate_state.state == "off":
                 continue
+            if (
+                not self.boost_active
+                and climate_state is not None
+                and climate_state.attributes.get("boost_active")
+            ):
+                continue
             if climate_state is None and not self._is_zone_enabled(zone_name):
                 continue
 
@@ -326,6 +465,10 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
                 continue
 
             attributes = climate_state.attributes
+            if attributes.get("boost_active"):
+                # The boost request is represented separately; don't keep a stale
+                # boost-forced valve state alive after its deadline.
+                continue
             if attributes.get("heating") or attributes.get("hvac_action") == "heating":
                 return True
 
@@ -451,6 +594,15 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             )
             return
 
+        if (
+            data.get("boost_active")
+            and not data.get("boost_ready")
+            and not data.get("normal_heating_request_active")
+            and not data.get("heating_cycle_active")
+        ):
+            # Do not start the heat pump while configured valves are still opening.
+            return
+
         if data.get("heating_request_active"):
             await self._async_turn_on_heat_source(
                 heat_source_switch,
@@ -522,7 +674,17 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
 
         buffer_ready_for_heating = True
 
-        heating_request_active, heating_requesting_zones = self._get_zone_heating_requests()
+        normal_heating_request_active, normal_heating_requesting_zones = (
+            self._get_zone_heating_requests()
+        )
+        boost_active = self.boost_active
+        heating_requesting_zones = list(normal_heating_requesting_zones)
+        if boost_active:
+            heating_requesting_zones = [
+                zone.get("name", "Neznama zona")
+                for zone in self.entry.options.get("zones", [])
+            ]
+        heating_request_active = bool(heating_requesting_zones)
         any_zone_actively_heating = self._has_any_active_heating_zone()
         heating_cycle_active = bool(
             any_zone_actively_heating
@@ -659,8 +821,12 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             "estimated_heat_loss_kw": round(estimated_heat_loss_kw, 2) if estimated_heat_loss_kw is not None else None,
             "heat_loss_state": heat_loss_state,
             "heating_request_active": heating_request_active,
+            "normal_heating_request_active": normal_heating_request_active,
             "heating_demand_active": heating_request_active,
             "heating_cycle_active": heating_cycle_active,
+            "boost_active": boost_active,
+            "boost_ready": self._boost_ready,
+            "boost_until": self._boost_until.isoformat() if self.boost_active else None,
             "heating_requesting_zones": heating_requesting_zones,
             "heating_requesting_zone_count": len(heating_requesting_zones),
             "system_demand_state": system_demand_state,
