@@ -133,6 +133,12 @@ SENSORS: tuple[HeatingZoneSensorDescription, ...] = (
         value_key="system_demand_state",
     ),
     HeatingZoneSensorDescription(
+        key="boost_remaining_minutes",
+        name="Boost zbyvajici cas",
+        value_key="boost_remaining_minutes",
+        native_unit_of_measurement="min",
+    ),
+    HeatingZoneSensorDescription(
         key="system_recommended_action",
         name="Doporucena akce systemu",
         value_key="system_recommended_action",
@@ -183,6 +189,7 @@ class HeatingZoneSystemSensor(CoordinatorEntity, SensorEntity):
             "system_name": self._entry.title,
             "boost_active": self.coordinator.data.get("boost_active"),
             "boost_until": self.coordinator.data.get("boost_until"),
+            "boost_remaining_minutes": self.coordinator.data.get("boost_remaining_minutes", 0),
             "heating_requesting_zones": self.coordinator.data.get("heating_requesting_zones", []),
             "heating_demand_binary_sensor": self.coordinator.data.get("heating_demand_binary_sensor"),
             "tuv_demand_binary_sensor": self.coordinator.data.get("tuv_demand_binary_sensor"),
