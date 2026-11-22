@@ -83,6 +83,7 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
         self._is_heating = False
         self._boost_control_active = False
         self._boost_previous_heating = False
+        self._boost_previous_hvac_mode = None
         self._boost_restore_pending = False
         self._zone_activation_generation = 0
         self._zone_valve_opening = False
@@ -365,13 +366,22 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
         """Control heating for this zone."""
         boost_active = self.coordinator.boost_active
         if boost_active and not self._boost_control_active:
-            self._boost_previous_heating = self._is_heating
+            previous_state = self.coordinator._boost_previous_zone_states.get(
+                self._zone_config["name"]
+            )
+            if previous_state:
+                self._boost_previous_hvac_mode, self._boost_previous_heating = previous_state
+            else:
+                self._boost_previous_hvac_mode = self._hvac_mode
+                self._boost_previous_heating = self._is_heating
             self._boost_control_active = True
 
         boost_just_ended = not boost_active and self._boost_control_active
         if boost_just_ended:
             self._boost_control_active = False
             self._boost_restore_pending = True
+            if self._boost_previous_hvac_mode is not None:
+                self._hvac_mode = self._boost_previous_hvac_mode
 
         if self._hvac_mode == HVACMode.OFF and not boost_active:
             if self._is_heating:
@@ -380,6 +390,7 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
                 self._is_heating = False
                 await self._async_turn_off_zone()
             self._boost_restore_pending = False
+            self._boost_previous_hvac_mode = None
             return
 
         if boost_active:
@@ -404,6 +415,7 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
                 else self._is_heating
             )
             self._boost_restore_pending = False
+            self._boost_previous_hvac_mode = None
             should_heat = current_temp < (
                 target + hysteresis if was_heating else target - hysteresis
             )
