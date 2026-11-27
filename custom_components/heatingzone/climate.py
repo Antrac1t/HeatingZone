@@ -27,7 +27,7 @@ _LOGGER = logging.getLogger(__name__)
 
 # Jak často kontrolovat teplotu a řídit topení
 CONTROL_INTERVAL = timedelta(seconds=30)
-TARGET_TEMPERATURE_STEP = 0.2
+TARGET_TEMPERATURE_STEP = 0.5
 
 
 async def async_setup_entry(
@@ -419,6 +419,11 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
             should_heat = current_temp < (
                 target + hysteresis if was_heating else target - hysteresis
             )
+
+        # Optional tariff rule applies to thermostat requests and Boost alike:
+        # a zone may remain in HEAT mode, but its valve/pump stay idle until NT or FVE.
+        if should_heat and not self.coordinator.heating_allowed:
+            should_heat = False
         
         # Apply control
         if should_heat and not self._is_heating:
