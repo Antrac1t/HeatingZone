@@ -84,7 +84,7 @@
         },
         "edit_tariff": {
           "title": "Nízký tarif",
-          "description": "Nastavte entity pro detekci nízkého tarifu a volitelně i údaj o zbývajícím čase do přepnutí.",
+          "description": "Nastavte entity pro detekci nízkého tarifu. Pravidlo topení pouze při NT nebo FVE lze zapínat dashboardovým přepínačem.",
           "data": {
             "nt_binary_sensor": "Binární senzor nízkého tarifu (volitelné)",
             "nt_remaining_time_sensor": "Senzor času do změny tarifu (volitelné)",
