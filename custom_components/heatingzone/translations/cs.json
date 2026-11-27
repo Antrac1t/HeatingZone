@@ -17,7 +17,6 @@
           "nt_remaining_time_sensor": "Senzor času do změny tarifu (volitelné)",
           "fve_grid_switch": "Switch FVE / grid pro TČ (volitelné)",
           "fve_active_when_on": "Stav ON na tomto switchi znamená FVE",
-          "heating_only_low_cost": "Topení zón pouze při NT nebo FVE",
           "heating_demand_binary_sensor": "Binární senzor požadavku na topení z TČ (volitelné)",
           "tuv_demand_binary_sensor": "Binární senzor požadavku na TUV z TČ (volitelné)",
           "tuv_setpoint_entity": "Entita cílové teploty TUV (volitelné)",
@@ -85,13 +84,12 @@
       },
       "edit_tariff": {
         "title": "Nízký tarif",
-        "description": "Nastavte entity pro detekci nízkého tarifu a rozhodněte, zda se topení zón povolí jen při NT nebo FVE.",
+        "description": "Nastavte entity pro detekci nízkého tarifu. Pravidlo topení pouze při NT nebo FVE lze zapínat dashboardovým přepínačem.",
         "data": {
           "nt_binary_sensor": "Binární senzor nízkého tarifu (volitelné)",
           "nt_remaining_time_sensor": "Senzor času do změny tarifu (volitelné)",
           "fve_grid_switch": "Switch FVE / grid pro TČ (volitelné)",
-          "fve_active_when_on": "Stav ON na tomto switchi znamená FVE",
-          "heating_only_low_cost": "Topení zón pouze při NT nebo FVE"
+          "fve_active_when_on": "Stav ON na tomto switchi znamená FVE"
         }
       },
       "edit_tuv": {
