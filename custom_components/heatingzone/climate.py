@@ -819,3 +819,14 @@ class ThermoZonaClimate(CoordinatorEntity, ClimateEntity, RestoreEntity):
             (state := self.hass.states.get(valve["valve"])) and state.state == "on"
             for valve in self._zone_config.get("valves", [])
         )
+
+    async def async_update_heating_permission(self) -> None:
+        """Apply a dashboard change to the NT/FVE heating permission immediately."""
+        await self._async_control_zone()
+        if self._should_suspend_circulation_for_tuv():
+            await self._async_suspend_zone_circulation_for_tuv()
+        else:
+            await self._async_ensure_zone_circulation()
+        if not self._is_heating:
+            await self._async_sync_inactive_zone_outputs()
+        self.async_write_ha_state()
