@@ -17,7 +17,6 @@ from .const import (
     DEFAULT_CONTROL_HEAT_SOURCE,
     DEFAULT_FVE_ACTIVE_WHEN_ON,
     DEFAULT_HEAT_LOSS_COEFFICIENT,
-    DEFAULT_HEATING_ONLY_LOW_COST,
     DEFAULT_SUSPEND_CIRCULATION_DURING_TUV,
     DEFAULT_HEATING_DEMAND_BINARY_SENSOR,
     DEFAULT_HYSTERESIS,
@@ -124,12 +123,6 @@ class HeatingZoneConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             vol.Optional(
                 "fve_active_when_on",
                 default=defaults.get("fve_active_when_on", DEFAULT_FVE_ACTIVE_WHEN_ON),
-            )
-        ] = bool
-        schema[
-            vol.Optional(
-                "heating_only_low_cost",
-                default=defaults.get("heating_only_low_cost", DEFAULT_HEATING_ONLY_LOW_COST),
             )
         ] = bool
         schema[
@@ -442,10 +435,6 @@ class HeatingZoneOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(
                     "fve_active_when_on",
                     default=defaults.get("fve_active_when_on", DEFAULT_FVE_ACTIVE_WHEN_ON),
-                ): bool,
-                vol.Optional(
-                    "heating_only_low_cost",
-                    default=defaults.get("heating_only_low_cost", DEFAULT_HEATING_ONLY_LOW_COST),
                 ): bool,
             }
         )
