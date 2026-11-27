@@ -27,7 +27,7 @@ _LOGGER = logging.getLogger(__name__)
 
 # Jak často kontrolovat teplotu a řídit topení
 CONTROL_INTERVAL = timedelta(seconds=30)
-TARGET_TEMPERATURE_STEP = 0.5
+TARGET_TEMPERATURE_STEP = 0.1
 
 
 async def async_setup_entry(
