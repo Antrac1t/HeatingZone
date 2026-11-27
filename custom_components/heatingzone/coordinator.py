@@ -9,11 +9,13 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_call_later
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
 from .const import (
     DEFAULT_HEAT_LOSS_COEFFICIENT,
+    DEFAULT_HEATING_ONLY_LOW_COST,
     DEFAULT_HEATING_DEMAND_BINARY_SENSOR,
     DEFAULT_TUV_CURRENT_TEMP_SENSOR,
     DEFAULT_TUV_DAY_END_HOUR,
@@ -40,6 +42,12 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             update_interval=timedelta(seconds=30),
         )
         self.entry = entry
+        self._settings_store = Store(
+            hass, 1, f"{DOMAIN}_{entry.entry_id}_settings"
+        )
+        self._heating_only_low_cost = bool(
+            entry.data.get("heating_only_low_cost", DEFAULT_HEATING_ONLY_LOW_COST)
+        )
         self.heat_source_lock = asyncio.Lock()
         self.last_heat_source_on = None
         self.last_heat_source_off = None
@@ -204,10 +212,47 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
         """Return whether shared heat source control is enabled."""
         return self.entry.data.get("control_heat_source", True)
 
+    async def async_load_settings(self) -> None:
+        """Restore persistent dashboard-controlled settings."""
+        settings = await self._settings_store.async_load()
+        if settings and "heating_only_low_cost" in settings:
+            self._heating_only_low_cost = bool(settings["heating_only_low_cost"])
+
+    @property
+    def heating_only_low_cost(self) -> bool:
+        """Return whether heating is restricted to NT or FVE."""
+        return self._heating_only_low_cost
+
+    async def async_set_heating_only_low_cost(self, enabled: bool) -> None:
+        """Change and persist the dashboard-controlled NT/FVE heating rule."""
+        enabled = bool(enabled)
+        if self._heating_only_low_cost == enabled:
+            return
+
+        self._heating_only_low_cost = enabled
+        await self._settings_store.async_save(
+            {"heating_only_low_cost": enabled}
+        )
+
+        entities = tuple(self.zone_entities.values())
+        if entities:
+            results = await asyncio.gather(
+                *(entity.async_update_heating_permission() for entity in entities),
+                return_exceptions=True,
+            )
+            for entity, result in zip(entities, results):
+                if isinstance(result, Exception):
+                    _LOGGER.error(
+                        "Failed to update tariff permission for zone %s: %s",
+                        entity._zone_config.get("name"),
+                        result,
+                    )
+        await self.async_request_refresh()
+
     @property
     def heating_allowed(self) -> bool:
         """Return whether zone heating is allowed by the optional NT/FVE rule."""
-        if not self.entry.data.get("heating_only_low_cost", False):
+        if not self.heating_only_low_cost:
             return True
 
         nt_active = bool(self._get_bool_state(self.entry.data.get("nt_binary_sensor")))
@@ -660,7 +705,7 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
         fve_active = self._is_fve_active()
         low_cost_power_active = bool(nt_active or fve_active)
         heating_allowed = bool(
-            not entry_data.get("heating_only_low_cost", False) or low_cost_power_active
+            not self.heating_only_low_cost or low_cost_power_active
         )
 
         tuv_current_temp = self._get_float_state(self._get_tuv_current_temp_sensor())
