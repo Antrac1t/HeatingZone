@@ -204,6 +204,15 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
         """Return whether shared heat source control is enabled."""
         return self.entry.data.get("control_heat_source", True)
 
+    @property
+    def heating_allowed(self) -> bool:
+        """Return whether zone heating is allowed by the optional NT/FVE rule."""
+        if not self.entry.data.get("heating_only_low_cost", False):
+            return True
+
+        nt_active = bool(self._get_bool_state(self.entry.data.get("nt_binary_sensor")))
+        return nt_active or self._is_fve_active()
+
     def _get_fve_grid_switch(self) -> str | None:
         """Return the optional switch indicating whether the heat pump runs from FVE or grid."""
         return self.entry.data.get("fve_grid_switch")
@@ -618,6 +627,13 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             # Do not start the heat pump while configured valves are still opening.
             return
 
+        has_heating_request = bool(
+            data.get("heating_request_active") or data.get("heating_cycle_active")
+        )
+        if has_heating_request and not data.get("heating_allowed", True):
+            await self._async_turn_off_heat_source(heat_source_switch)
+            return
+
         if data.get("heating_request_active"):
             await self._async_turn_on_heat_source(
                 heat_source_switch,
@@ -643,6 +659,9 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
         nt_active = bool(nt_state and nt_state.state == "on")
         fve_active = self._is_fve_active()
         low_cost_power_active = bool(nt_active or fve_active)
+        heating_allowed = bool(
+            not entry_data.get("heating_only_low_cost", False) or low_cost_power_active
+        )
 
         tuv_current_temp = self._get_float_state(self._get_tuv_current_temp_sensor())
         tuv_top_temp = self._get_float_state(entry_data.get("tuv_top_temp_sensor"))
@@ -844,6 +863,11 @@ class HeatingZoneCoordinator(DataUpdateCoordinator):
             "heat_loss_state": heat_loss_state,
             "heating_request_active": heating_request_active,
             "normal_heating_request_active": normal_heating_request_active,
+            "heating_allowed": heating_allowed,
+            "heating_waiting_for_low_cost": bool(
+                not heating_allowed
+                and (heating_request_active or heating_cycle_active)
+            ),
             "heating_demand_active": heating_request_active,
             "heating_cycle_active": heating_cycle_active,
             "boost_active": boost_active,
